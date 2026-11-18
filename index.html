@@ -371,16 +371,27 @@ function updSwimmers(dt) { for (let i = SWIM.length - 1; i >= 0; i--) { const p 
     else if (p.st === 'ring') { p.x = RING.far.x; p.z = RING.far.z; }
     p.g.position.set(p.x, SEA + wv(p.x, p.z) * SEAU.uWave.value - .5, p.z); p.arms.rotation.z = Math.sin(p.t * 7) * .6; p.arms.position.y = beamAtW(p.x, p.z) > .3 ? .3 : 0;
     glow.add(p.x, SEA + .9, p.z, 4, .5 * (1 - fogW(p.z) * .8), 0); } }
-const CR_TROU = new THREE.CylinderGeometry(.085, .075, .62, 10).translate(0, -.31, 0), CR_BOOT = new THREE.BoxGeometry(.13, .17, .24).translate(0, -.72, .04), CR_COAT = lathe([[0, -.06], [.2, -.06], [.25, .08], [.255, .3], [.235, .48], [.17, .6], [.08, .65], [0, .66]], 14),
-  CR_HEAD = new THREE.SphereGeometry(.12, 14, 10), CR_NOSE = new THREE.SphereGeometry(.034, 8, 6), CR_BEARD = new THREE.SphereGeometry(.115, 12, 8, 0, Math.PI, Math.PI * .45, Math.PI * .55).scale(1, 1.15, .9), CR_SOU = lathe([[0, .13], [.09, .125], [.125, .05], [.13, .02], [.2, -.03], [.22, -.06]], 16),
-  CR_SLEEVE = new THREE.CylinderGeometry(.058, .048, .46, 8).translate(0, -.24, 0), CR_MITT = new THREE.SphereGeometry(.058, 8, 6), CR_SCARF = new THREE.TorusGeometry(.11, .04, 6, 14).rotateX(Math.PI / 2), CR_BTN = new THREE.SphereGeometry(.014, 6, 4), CR_EYE = new THREE.SphereGeometry(.016, 6, 4);
-function makeCrew(at) { const g = grp(scene, at.x, 0, at.z), coat = ink(.55, { lamp: 1.3 }), skin = ink(.92, { lamp: 1.3 }), dark = ink(.1, { lamp: 1.3 }); const hip = grp(g, 0, .82, 0);
-  const legs = [-1, 1].map(s => { const l = grp(hip, s * .1, 0, 0); mesh(CR_TROU, ink(.3, { lamp: 1.3 }), l, { line: .005 }); mesh(CR_BOOT, dark, l, { line: .004 }); return l; });
-  mesh(CR_COAT, coat, hip, { line: .006 }); for (let i = 0; i < 3; i++) mesh(CR_BTN, dark, hip, { p: [0, .14 + i * .13, .25 - i * .006] }); mesh(CR_SCARF, ink(.9, { lamp: 1.3 }), hip, { p: [0, .62, 0], line: .003 });
-  const head = grp(hip, 0, .77, 0); mesh(CR_HEAD, skin, head, { line: .004 }); mesh(CR_NOSE, skin, head, { p: [0, -.005, .125], line: .003 }); mesh(CR_BEARD, ink(.35, { lamp: 1.3, side: THREE.DoubleSide }), head, { p: [0, -.01, .02], line: .003 }); mesh(CR_SOU, ink(.45, { lamp: 1.3, side: THREE.DoubleSide }), head, { p: [0, .03, -.01], r: [-.15, 0, 0], line: .004 });
-  for (const s of [-1, 1]) mesh(CR_EYE, dark, head, { p: [s * .045, .03, .108] });
-  const arms = [-1, 1].map(s => { const a = grp(hip, s * .27, .52, 0); mesh(CR_SLEEVE, coat, a, { line: .004 }); mesh(CR_MITT, ink(.25, { lamp: 1.3 }), a, { p: [0, -.53, 0], line: .003 }); return a; });
-  const c = { g, hip, legs, head, arms, t: rand(0, 5), st: 'walk', seat: null, drip: 6, sulk: 0, wave: 0 }; CREW.push(c); return c; }
+// the crew: short, round, bearded, each a little different
+const CR = { trou: new THREE.CylinderGeometry(.078, .07, .36, 10).translate(0, -.18, 0), boot: new THREE.SphereGeometry(1, 12, 8).scale(.085, .065, .13), belly: lathe([[0, -.04], [.2, -.04], [.29, .12], [.31, .26], [.27, .42], [.18, .52], [.09, .56], [0, .57]], 18),
+  belt: new THREE.CylinderGeometry(.287, .287, .045, 18), head: new THREE.SphereGeometry(.15, 18, 12), nose: new THREE.SphereGeometry(.05, 10, 8), beard: new THREE.SphereGeometry(.16, 14, 10, 0, Math.PI, Math.PI * .48, Math.PI * .52).scale(1.05, 1.15, .9), tuft: new THREE.SphereGeometry(.085, 10, 8).scale(1, 1.2, .8),
+  eye: new THREE.SphereGeometry(.037, 10, 8), pupil: new THREE.SphereGeometry(.014, 8, 6), brow: new THREE.BoxGeometry(.075, .022, .03), upper: new THREE.CylinderGeometry(.064, .056, .24, 9).translate(0, -.12, 0), fore: new THREE.CylinderGeometry(.056, .05, .2, 9).translate(0, -.1, 0), mitt: new THREE.SphereGeometry(.072, 10, 8).scale(1, 1.1, .85),
+  btn: new THREE.SphereGeometry(.017, 6, 4), scarf: new THREE.TorusGeometry(.13, .045, 6, 16).rotateX(Math.PI / 2),
+  sou: lathe([[0, .16], [.11, .155], [.155, .07], [.16, .03], [.25, -.02], [.27, -.06]], 18), beanie: new THREE.SphereGeometry(.158, 16, 8, 0, TAU, 0, Math.PI * .52), roll: new THREE.TorusGeometry(.152, .035, 6, 18).rotateX(Math.PI / 2), pom: new THREE.SphereGeometry(.045, 8, 6),
+  cap: new THREE.CylinderGeometry(.16, .15, .07, 18), peak: new THREE.CircleGeometry(.12, 12, 0, Math.PI).rotateX(-Math.PI / 2), bowl: new THREE.CylinderGeometry(.022, .016, .045, 8), stem: new THREE.CylinderGeometry(.006, .006, .1, 5).rotateX(Math.PI / 2 - .3) };
+let CREW_N = 0;
+function makeCrew(at) { const n = CREW_N++, g = grp(scene, at.x, 0, at.z), L = { lamp: 1.3 }, coat = ink(pick([.62, .7, .55]), L), skin = ink(.9, L), dark = ink(.08, L), beardM = ink(pick([.12, .2, .85]), { lamp: 1.3, side: THREE.DoubleSide }), hipY = .55;
+  g.scale.setScalar(rand(.9, 1.08)); const hip = grp(g, 0, hipY, 0);
+  const legs = [-1, 1].map(s => { const l = grp(hip, s * .12, 0, 0), k = grp(l); k.rotation.z = s * .1; mesh(CR.trou, ink(.28, L), k, { line: .004 }); mesh(CR.boot, dark, k, { p: [s * .015, -.42, .045], line: .004 }); return l; });
+  const fat = rand(.92, 1.15); mesh(CR.belly, coat, hip, { s: [fat, 1, fat], line: .006 }); mesh(CR.belt, dark, hip, { p: [0, .1, 0], s: [fat, 1, fat] }); mesh(new THREE.BoxGeometry(.06, .05, .02), ink(.85, L), hip, { p: [0, .1, .287 * fat] });
+  for (let i = 0; i < 2; i++) mesh(CR.btn, dark, hip, { p: [0, .24 + i * .12, (.305 - i * .03) * fat] }); mesh(CR.scarf, ink(pick([.92, .3]), L), hip, { p: [0, .54, 0], line: .003 });
+  const head = grp(hip, 0, .7, 0); mesh(CR.head, skin, head, { line: .004 }); mesh(CR.nose, skin, head, { p: [0, -.01, .155], line: .003 }); mesh(CR.beard, beardM, head, { p: [0, -.025, .035], line: .004 }); mesh(CR.tuft, beardM, head, { p: [0, -.15, .07], line: .004 });
+  const brows = []; for (const s of [-1, 1]) { mesh(CR.eye, ink(0, { em: .95, rim: 0 }), head, { p: [s * .06, .045, .132] }); mesh(CR.pupil, dark, head, { p: [s * .058, .043, .166] }); const b = mesh(CR.brow, beardM, head, { p: [s * .06, .095, .14] }); b.userData.s = s; brows.push(b); }
+  const hat = n % 3; if (hat === 0) mesh(CR.sou, ink(.42, { lamp: 1.3, side: THREE.DoubleSide }), head, { p: [0, .095, -.02], r: [-.25, 0, 0], line: .004 });
+  else if (hat === 1) { const hm = ink(.22, L); mesh(CR.beanie, hm, head, { p: [0, .085, -.01], r: [-.2, 0, 0], line: .004 }); mesh(CR.roll, hm, head, { p: [0, .095, -.01], r: [-.2, 0, 0] }); mesh(CR.pom, ink(.9, L), head, { p: [0, .25, -.06], line: .003 }); }
+  else { const hm = ink(.18, L); mesh(CR.cap, hm, head, { p: [0, .16, -.01], r: [-.2, 0, 0], line: .004 }); mesh(CR.peak, ink(.08, { lamp: 1.3, side: THREE.DoubleSide }), head, { p: [0, .14, .1], r: [-.1, 0, 0], s: [1, 1, .7] }); }
+  let pipe = null; if (n % 2 === 0) { pipe = grp(head, .07, -.085, .14); pipe.rotation.y = .7; mesh(CR.stem, dark, pipe, { p: [0, 0, .05] }); mesh(CR.bowl, ink(.35, L), pipe, { p: [0, .02, .1], line: .002 }); }
+  const mitts = [], arms = [-1, 1].map(s => { const a = grp(hip, s * .3, .44, 0), sp = grp(a); sp.rotation.z = s * .16; mesh(CR.upper, coat, sp, { line: .004 }); const el = grp(sp, 0, -.24, 0); el.rotation.x = -.3; mesh(CR.fore, coat, el, { line: .004 }); mitts.push(mesh(CR.mitt, ink(.25, L), el, { p: [0, -.24, 0], line: .003 })); return a; });
+  const c = { g, hip, hipY, legs, head, arms, mitts, brows, pipe, t: rand(0, 5), st: 'walk', seat: null, drip: 6, sulk: 0, wave: 0 }; CREW.push(c); return c; }
 function seatFor() { for (const s of SEATS) if (!CREW.some(c => c.seat === s)) return s; return octPt(rand(1.5, 3), AP - .7); }
 function hatchArrival() { if (S.phase === 'poster') return; const c = makeCrew(HATCH); c.g.position.y = -1.2; c.st = 'climb'; c.sulk = 1; sfx('hmph', HATCH); caption(pick(['He swam. He climbed the stairs. He is not pleased.', 'Another one came up the stairs, dripping.']), 3.5); }
 function hauledArrival() { const door = octPt(DOOR_A, AP + .4); makeCrew(door); sfx('thanks', door, 1); S.fished++; drawBoard(); crowdCheer(); caption(pick(['Hauled up twenty-eight metres. He would like a blanket.', 'One more aboard. He is very wet.', 'Rescued. He keeps saying thank you.']), 3.5); }
@@ -393,7 +404,9 @@ function updCrew(dt) { camera.getWorldPosition(_v3);
       const near = Math.hypot(_v3.x - g.position.x, _v3.z - g.position.z) < 1.3; let handNear = false; for (const h of PH) if (h.tracked && h.P.distanceTo(_v.copy(g.position).setY(1.1)) < .5) handNear = true;
       if (S.panic > 0) { armA = -2.9 + Math.sin(c.t * 20) * .3; armB = -2.9 - Math.sin(c.t * 20) * .3; } else if (S.cheer > 0) { armA = -2.6 + Math.sin(c.t * 12) * .4; armB = -2.6 - Math.sin(c.t * 12) * .4; c.hip.position.y = .5 + Math.abs(Math.sin(c.t * 9)) * .04; } else if (c.salute > 0) { c.salute -= dt; armB = -2.7; } else if (S.music > 0) { const b = Math.sin(T * 5.2 + c.t); armA = -1 + b * .5; armB = -1 - b * .5; c.hip.position.y = .5 + Math.abs(b) * .03; if (Math.random() < dt * .7) sfx('la', _v.copy(g.position).setY(1.1)); } else if (handNear || c.wave > 0) { armB = -2.4 + Math.sin(c.t * 10) * .5; c.wave = Math.max(0, c.wave - dt); } else if (c.sulk > .5) { armA = armB = .15; } else { armA = Math.sin(c.t * .8) * .05; armB = -armA; }
       if (near && !c.greeted) { c.greeted = 1; c.wave = 2; sfx(c.sulk > .5 ? 'hmph' : 'thanks', _v.copy(g.position).setY(1), 1); } if (!near) c.greeted = 0; }
-    c.head.lookAt(_v3); if (c.munch > 0) { c.munch -= dt; c.head.rotateX(Math.sin(T * 16) * .14); if (Math.random() < dt * 3) sfx('munch', c.g.position, .6); } c.arms[0].rotation.x = armA; c.arms[1].rotation.x = armB;
+    c.head.lookAt(_v3); { const mood = c.st === 'grabbed' || S.panic > 0 ? -1 : c.sulk > .3 ? 1 : 0; for (const b of c.brows) { b.rotation.z = lerp(b.rotation.z, -b.userData.s * mood * .45, damp(dt, .1)); b.position.y = lerp(b.position.y, .095 + (mood < 0 ? .02 : mood > 0 ? -.01 : 0), damp(dt, .1)); } }
+    if (c.pipe && c.st === 'sit' && Math.random() < dt * 1.2) { c.pipe.children[1].getWorldPosition(_v); puff(_v.x, _v.y + .03, _v.z, 1, { s: .02, g: -.03, vy: .1, up: .05, sp: .01, life: 2, grow: 2.5, a: .3 }); }
+    if (c.munch > 0) { c.munch -= dt; c.head.rotateX(Math.sin(T * 16) * .14); if (Math.random() < dt * 3) sfx('munch', c.g.position, .6); } c.arms[0].rotation.x = armA; c.arms[1].rotation.x = armB;
     if (c.drip > 0 && Math.random() < dt * 6) puff(g.position.x + rand(-.15, .15), 1, g.position.z + rand(-.15, .15), 1, { s: .012, vy: -.2, up: 0, sp: .02, life: .9, floor: .005 }); } }
 function crowdCheer() { S.cheer = 2.6; if (CREW.length) setTimeout(() => sfx('cheer', _v.set(-1, 1, .6)), 300); }
 
@@ -451,7 +464,7 @@ function startGrab(best) { KR.done = true; KR.vic = CREW.find(c => c.st === 'sit
   KR.pane = best; KR.out.set(Math.cos(best.a), 0, Math.sin(best.a)); KR.hole.copy(best.c).setY(1.5); KR.base.copy(best.c).addScaledVector(KR.out, 1.4).setY(-.8); KR.inside.copy(best.c).addScaledVector(KR.out, -.45).setY(0);
   KR.st = 'smash'; KR.t = 0; KR.p = .4; KR.reach = 0; KR.flinch = 0; wt.visible = true; wtSuck.forEach(m => m.visible = false); sfx('glub', KR.hole, .8); }
 function krFree(why) { if (KR.hand) { KR.hand.hold = null; KR.hand = null; } sfx('eep', KR.hole); buzzAll(.6, 60);
-  if (KR.vic) { const c = KR.vic; c.st = 'walk'; c.hip.rotation.x = 0; c.hip.position.y = .82; c.g.position.y = 0; c.legs.forEach(l => l.rotation.x = 0); c.sulk = 0; c.wave = 2.5; crowdCheer(); S.saved = (S.saved || 0) + 1; caption(why || 'It let go! He would like a word with the sea.', 4); }
+  if (KR.vic) { const c = KR.vic; c.st = 'walk'; c.hip.rotation.x = 0; c.hip.position.y = c.hipY; c.g.position.y = 0; c.legs.forEach(l => l.rotation.x = 0); c.sulk = 0; c.wave = 2.5; crowdCheer(); S.saved = (S.saved || 0) + 1; caption(why || 'It let go! He would like a word with the sea.', 4); }
   else { if (KR.prop.st === 'kraken') { KR.prop.st = 'fly'; KR.prop.vel.set(0, 0, 0); } caption(why || 'Got it back.', 3); }
   KR.st = 'flee'; KR.t = 0; }
 const buzzAll = (v, ms) => { for (const h of PH) buzz(h, v, ms); };
@@ -713,7 +726,7 @@ function burst(r) { const p = r.g.position, inside = Math.hypot(p.x - CEN.x, p.z
 function updToys(dt) { const eye = camera.getWorldPosition(_v3); S.panic = Math.max(0, (S.panic || 0) - dt); S.music = Math.max(0, (S.music || 0) - dt); FLARE.w = 0;
   // cap
   if (HAT.st === 'worn') { hatG.position.copy(camera.localToWorld(_v.set(0, .085, .035))); camera.getWorldQuaternion(hatG.quaternion); }
-  if (HAT.st === 'crew') { if (!CREW.includes(HAT.crew)) { HAT.st = 'gone'; HAT.t = 0; HAT.crew = null; } else { HAT.crew.head.updateMatrixWorld(true); hatG.position.copy(HAT.crew.head.localToWorld(_v.set(0, .14, 0))); HAT.crew.head.getWorldQuaternion(hatG.quaternion); } }
+  if (HAT.st === 'crew') { if (!CREW.includes(HAT.crew)) { HAT.st = 'gone'; HAT.t = 0; HAT.crew = null; } else { HAT.crew.head.updateMatrixWorld(true); hatG.position.copy(HAT.crew.head.localToWorld(_v.set(0, .2, 0))); HAT.crew.head.getWorldQuaternion(hatG.quaternion); } }
   // biscuit
   { const mouth = _v.copy(eye).setY(eye.y - .08); if (BISC.st === 'held' && biscG.position.distanceTo(mouth) < .13) { BISC.bite -= dt; if (BISC.bite < 0) { BISC.bite = .5; BISC.bites++; sfx('munch', mouth); puff(mouth.x, mouth.y - .03, mouth.z, 6, { s: .004, sp: .08, vy: -.2, up: .1, life: 1.2, floor: 0 }); biscM.scale.set(1 - BISC.bites * .22, 1, 1 - BISC.bites * .22); biscM.position.x = BISC.bites * .007;
         if (BISC.bites >= 4) { biscGone(); if (!S.tut.bisc) { S.tut.bisc = 1; caption('Ship\'s biscuit. Hard as a deck plank. There are more in the tin.', 4); } } } }
@@ -741,7 +754,7 @@ function updToys(dt) { const eye = camera.getWorldPosition(_v3); S.panic = Math.
     if (r.st === 'star') { r.t += dt; g.position.y -= dt * 1.6; g.position.x += dt * 1.2; const k = s01(r.t / .3) * (1 - s01((r.t - 9) / 3)); glow.add(g.position.x, g.position.y, g.position.z, 26 * k, .9 * k, 0); dots.add(g.position.x, g.position.y, g.position.z, 1.2, k, 0);
       if (k > FLARE.w) FLARE.set(g.position.x, g.position.y, g.position.z, k * 1.1); if (r.t > 12 || g.position.y < SEA + 1) { r.st = 'gone'; r.t = -18; g.visible = true; g.position.y = SEA - 50; } } }
   // high fives: when a sailor waves, slap it
-  for (const c of CREW) { if (c.st !== 'sit' || !(c.wave > 0)) continue; c.arms[1].updateMatrixWorld(true); const hp = c.arms[1].localToWorld(_v.set(0, -.56, 0));
+  for (const c of CREW) { if (c.st !== 'sit' || !(c.wave > 0)) continue; c.mitts[1].updateMatrixWorld(true); const hp = c.mitts[1].getWorldPosition(_v);
     for (const h of PH) if (h.tracked && !h.hold && h.tip.distanceTo(hp) < .14 && h.tipVel.length() > .7 && (c.fiveT || 0) < T) { c.fiveT = T + 1.2; c.wave = 0; c.five = .35; sfx('slap', hp); buzz(h, .9, 40); puff(hp.x, hp.y, hp.z, 8, { s: .008, sp: .4, up: .3, life: .4 }); S.fives = (S.fives || 0) + 1; if (S.fives === 1) caption('High five. He has been waiting all night for that.', 3.5); } }
   if (S.phase === 'night' && S.n === 0 && S.nt > 32 && !S.tut.toys) { S.tut.toys = 1; caption('Behind you, on the table: a cap, a spyglass, biscuits, a squeezebox. Rockets by the door.', 6); } }
 function releaseToy(h, k) {
