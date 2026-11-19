@@ -30,6 +30,7 @@ h1 i{font-style:italic;font-size:.62em;vertical-align:.22em;margin-right:.08em;c
 #go:hover:not(:disabled),#go:focus-visible{transform:translateY(-2px);filter:brightness(1.08);outline:none}
 #go:active:not(:disabled){transform:translateY(1px)}
 #go:disabled{cursor:wait;filter:brightness(.55)}
+#cont{cursor:pointer;margin-left:1em;font:400 clamp(13px,1vw,16px) 'IM Fell English SC',serif;letter-spacing:.18em;line-height:1;white-space:nowrap;padding:1em 1.6em;color:var(--paper);background:none;border:1px solid var(--paper);border-radius:2px}#cont[hidden]{display:none}#cont:hover{filter:brightness(1.15)}
 #msg{font:400 clamp(10px,.8vw,12px)/1.6 'Geist Mono',monospace;letter-spacing:.12em;text-transform:uppercase;color:rgba(236,230,214,.6);white-space:nowrap}
 .credit{--k:rgba(255,255,255,.55);position:relative;flex:0 0 var(--bar);display:flex;align-items:center;gap:18px;padding:0 clamp(16px,3.2vw,48px);background:#000;color:#fff;text-decoration:none;font:400 13px/1 Geist,system-ui,sans-serif;-webkit-font-smoothing:antialiased}
 .credit::before{content:'';position:absolute;inset:0 0 auto;height:1px;background:rgba(255,255,255,.09)}
@@ -59,7 +60,7 @@ h1 i{font-style:italic;font-size:.62em;vertical-align:.22em;margin-right:.08em;c
       <div class="rule"></div>
       <div class="sub">Strike the match. Turn the great lens by hand. <br>Haul up whoever the sea gives back.</div>
       <div class="cta">
-        <button id="go" disabled>Trimming the wick</button>
+        <button id="go" disabled>Trimming the wick</button><button id="cont" hidden></button>
         <div id="msg"></div>
       </div>
     </div>
@@ -89,11 +90,14 @@ const TAU = Math.PI * 2;
 const angDiff = (a, b) => { let d = (a - b) % TAU; if (d > Math.PI) d -= TAU; if (d < -Math.PI) d += TAU; return d; };
 const CEN = new V(0, 0, -1.35);           // the lens, and the middle of the lantern room
 const AP = 2.3, SEA = -28;               // octagon apothem; sea level
-const DOOR_A = Math.PI / 4;              // the door is the south-east side (angle in xz from the centre, atan2(z, x))
-const LENS = { r: .38, y0: 1.0, y1: 1.95, cy: 1.45 }, WICK = new V(0, 1.45, CEN.z + .4), FUNNEL = new V(.3, 1.04, CEN.z + .3), RING_R = .52;
-const CRANK = new V(-.83, 1.02, -.72), CORD0 = new V(-.62, 1.42, .18), HOOK = new V(), CLEAT = new V(), BELL = new V(1.36, 1.62, -.95);
-const SHELF = { x: 1.2, y: .9 };
-const HARBOR = new V(210, -28, -70), EXIT = new V(330, -28, -60);
+const DOOR_A = Math.PI * 1.25;           // the door: front-left of your chair, standing open onto the gallery (angle in xz from the centre, atan2(z, x))
+// SEATED: you sit in the keeper's chair, beside the lens. Everything you touch is within an arm of it; everything that happens, happens in front of you.
+const SEAT = new V(-.5, 0, -.6), EYE_H = 1.58;
+const TOSEAT = new V(SEAT.x - CEN.x, 0, SEAT.z - CEN.z).normalize();
+const LENS = { r: .38, y0: 1.0, y1: 1.95, cy: 1.45 }, WICK = CEN.clone().addScaledVector(TOSEAT, .4).setY(1.45), FUNNEL = CEN.clone().addScaledVector(TOSEAT.clone().applyAxisAngle(new V(0, 1, 0), .55), .42).setY(1.04), RING_R = .58;
+const CRANK = new V(-.76, 1.02, -.98), CORD0 = new V(-.95, 1.5, -.75), HOOK = new V(-.82, 1.18, -.7), CLEAT = new V(-.8, .7, -1.0), BELL = new V(-.15, 1.5, -.8);
+const TBL = new V(SEAT.x - .42, 0, SEAT.z + .1), TBL_A = Math.PI / 2; const tblAt = (u, y = .9, v = 0) => new V(TBL.x + Math.cos(TBL_A) * u + Math.sin(TBL_A) * v, y, TBL.z - Math.sin(TBL_A) * u + Math.cos(TBL_A) * v);
+const HARBOR = new V(180, -28, -130), EXIT = new V(320, -28, -150);
 const CFG = { PINCH: { on: .02, gap: .02, cap: .035 }, HALF: .11, G: 9.81 };
 const NIGHTS = [
   { sub: 'Calm seas. Mostly.', ships: 5, rocks: 6, every: 15, conc: 2, fog: 0, soot: 0, storm: 0, kraken: 0 },
@@ -200,7 +204,6 @@ mesh(new THREE.PlaneGeometry(1600, 1600, 220, 220).rotateX(-Math.PI / 2), new TH
 // ═══════════════════════════ THE LIGHTHOUSE ═══════════════════════════
 const octPt = (a, r) => new V(CEN.x + Math.cos(a) * r, 0, CEN.z + Math.sin(a) * r);
 const VERT_R = AP / Math.cos(Math.PI / 8), SIDE = 2 * AP * Math.tan(Math.PI / 8);
-HOOK.copy(octPt(DOOR_A + .55, AP - .14)).setY(1.3); CLEAT.copy(octPt(DOOR_A - .5, AP - .16)).setY(.95);
 mesh(new THREE.CircleGeometry(VERT_R + .03, 8, Math.PI / 8).rotateX(-Math.PI / 2), ink(.5), scene, { p: [CEN.x, 0, CEN.z] });
 for (let k = 0; k < 4; k++) mesh(new THREE.BoxGeometry(.02, .004, VERT_R * 2), ink(.2), scene, { p: [CEN.x, .002, CEN.z], r: [0, k * Math.PI / 4 + Math.PI / 8, 0] });
 const HATCH = new V(-.55, 0, .55); mesh(new THREE.BoxGeometry(.72, .006, .72), ink(.03, { rim: 0 }), scene, { p: [HATCH.x, .003, HATCH.z] }); mesh(new THREE.BoxGeometry(.78, .03, .03), ink(.4), scene, { p: [HATCH.x, .015, HATCH.z - .37], line: .004 });
@@ -211,7 +214,7 @@ const glassMat = new THREE.ShaderMaterial({ uniforms: GLASSU, transparent: true,
     float streak=uRain*smoothstep(.03,0.,abs(fract(vUv.x*70.)-.5)-.12)*smoothstep(.0,.15,y)*smoothstep(.45,.15,y);float dot1=uRain*step(.985,h12(floor(vUv*vec2(90.,60.))+floor(uT*.5)));
     float sheen=.04+.05*smoothstep(.3,1.,vUv.y)+uFlame*.03;float a=sheen+streak*.35+dot1*.5+uFlash*.1;gl_FragColor=vec4(uPaper,a);${OUT}}` });
 const PANES = [];
-for (let k = 0; k < 8; k++) { const a = k * Math.PI / 4, c = octPt(a, AP), door = k === 1, ry = -a + Math.PI / 2;
+for (let k = 0; k < 8; k++) { const a = k * Math.PI / 4, c = octPt(a, AP), door = Math.abs(angDiff(a, DOOR_A)) < .1, ry = -a + Math.PI / 2;
   if (!door) { mesh(new THREE.BoxGeometry(SIDE, .9, .12), ink(.3, { lamp: 1.1 }), scene, { p: [c.x + Math.cos(a) * .06, .45, c.z + Math.sin(a) * .06], r: [0, ry, 0], line: .006 });
     mesh(new THREE.BoxGeometry(SIDE, .05, .2), ink(.6), scene, { p: [c.x, .92, c.z], r: [0, ry, 0] });
     const p = mesh(new THREE.PlaneGeometry(SIDE, 2.0), glassMat, scene, { p: [c.x, 1.95, c.z], r: [0, ry, 0] }); p.renderOrder = 30; PANES.push({ a, c, m: p }); }
@@ -219,6 +222,8 @@ for (let k = 0; k < 8; k++) { const a = k * Math.PI / 4, c = octPt(a, AP), door 
     const hinge = octPt(a - Math.PI / 8, VERT_R); const leaf = grp(scene, hinge.x, 0, hinge.z); leaf.rotation.y = -(a + Math.PI / 2) - 1.9; mesh(new THREE.BoxGeometry(SIDE * .5, 2.05, .05).translate(SIDE * .25, 1.03, 0), ink(.4, { lamp: 1.1 }), leaf, { line: .006 }); mesh(new THREE.SphereGeometry(.03, 10, 8), ink(.8), leaf, { p: [SIDE * .44, 1.0, .04] }); }
   const vA = a + Math.PI / 8, vp = octPt(vA, VERT_R); mesh(new THREE.BoxGeometry(.07, 2.05, .07), ink(.18), scene, { p: [vp.x, 1.95, vp.z], r: [0, -vA, 0], line: .005 });
   mesh(new THREE.BoxGeometry(SIDE + .06, .12, .14), ink(.25), scene, { p: [c.x, 2.98, c.z], r: [0, ry, 0], line: .006 }); }
+// the panes the kraken may come through: in front of your chair, and not hidden behind the lens
+const FRONTP = PANES.filter(p => { const dx = p.c.x - SEAT.x, dz = p.c.z - SEAT.z, L = Math.hypot(dx, dz), cx = CEN.x - SEAT.x, cz = CEN.z - SEAT.z; return dz / L < -.3 && Math.abs(cx * dz / L - cz * dx / L) > .45; });
 mesh(new THREE.ConeGeometry(VERT_R + .12, 1.5, 8, 1, true).rotateY(Math.PI / 8), ink(.18, { side: THREE.DoubleSide, lamp: 1.4 }), scene, { p: [CEN.x, 3.78, CEN.z], line: .01 });
 mesh(new THREE.SphereGeometry(.38, 20, 14), ink(.35), scene, { p: [CEN.x, 4.65, CEN.z], line: .01 }); mesh(new THREE.ConeGeometry(.08, .7, 8), ink(.2), scene, { p: [CEN.x, 5.15, CEN.z] });
 // the gallery outside, its railing; the tower below; the island at its foot
@@ -264,38 +269,36 @@ const BEAMS = [[0, 1], [Math.PI, .55]].map(([off, k]) => { const b = mesh(new TH
 function aimBeams() { for (const { b, off, k } of BEAMS) { const yw = LAMP.yaw + off; b.rotation.set(.055, Math.atan2(Math.cos(yw), Math.sin(yw)), 0); b.scale.set(Math.tan(CFG.HALF) * 340 * k, Math.tan(CFG.HALF) * 340 * k, 340); b.visible = BEAMU.uLen.value > 0; b.material.uniforms.uI.value = BEAMU.uI.value; b.material.uniforms.uLen.value = BEAMU.uLen.value; } }
 
 // ═══════════════════════════ THINGS: on the shelf, on the walls, in reach ═══════════════════════════
-mesh(new THREE.BoxGeometry(.32, .03, .9), ink(.55, { lamp: 1.3 }), scene, { p: [SHELF.x, SHELF.y - .015, -.35], line: .004 });
-for (const z of [-.72, .02]) mesh(new THREE.BoxGeometry(.03, .18, .03), ink(.3), scene, { p: [SHELF.x + .12, SHELF.y - .1, z] });
-const cab = grp(scene, -1.05, 0, -.72); mesh(new THREE.BoxGeometry(.42, .98, .42).translate(0, .49, 0), ink(.35, { lamp: 1.3 }), cab, { line: .005 });
+const cab = grp(scene, CRANK.x - .22, 0, CRANK.z - .12); mesh(new THREE.BoxGeometry(.42, .98, .42).translate(0, .49, 0), ink(.35, { lamp: 1.3 }), cab, { line: .005 });
 mesh(new THREE.CylinderGeometry(.13, .13, .01, 32).rotateZ(Math.PI / 2), ink(.95, { lamp: 1.3 }), cab, { p: [.215, .72, 0] }); const needle = grp(cab, .222, .72, 0); mesh(new THREE.BoxGeometry(.004, .11, .008).translate(0, .05, 0), ink(.05), needle);
 const crankG = grp(scene, CRANK.x, CRANK.y, CRANK.z); mesh(new THREE.CylinderGeometry(.025, .025, .08, 12).rotateZ(Math.PI / 2), ink(.3), crankG, { p: [-.02, 0, 0] });
 const crankArm = grp(crankG, .03, 0, 0); mesh(new THREE.BoxGeometry(.025, .16, .03).translate(0, .075, 0), ink(.3), crankArm, { line: .004 }); const crankKnob = mesh(new THREE.CylinderGeometry(.022, .02, .11, 12).rotateZ(Math.PI / 2), ink(.85, { lamp: 1.4 }), crankArm, { p: [.06, .15, 0], line: .004 });
-const chainW = mesh(new THREE.CylinderGeometry(.07, .07, .22, 12), ink(.25), scene, { p: [-1.2, .2, -.5], line: .005 }); const chainL = mesh(new THREE.CylinderGeometry(.006, .006, 1, 4).translate(0, .5, 0), ink(.2), scene, { p: [-1.2, .3, -.5] });
+const chainW = mesh(new THREE.CylinderGeometry(.07, .07, .22, 12), ink(.25), scene, { p: [CRANK.x - .4, .2, CRANK.z - .2], line: .005 }); const chainL = mesh(new THREE.CylinderGeometry(.006, .006, 1, 4).translate(0, .5, 0), ink(.2), scene, { p: [CRANK.x - .4, .3, CRANK.z - .2] });
 mesh(lathe([[.012, -.12], [.014, 0], [.07, .09], [.075, .1]], 24), ink(.7, { lamp: 1.3, side: THREE.DoubleSide }), scene, { p: [FUNNEL.x, FUNNEL.y - .1, FUNNEL.z], line: .003 });
 const cordLine = new THREE.Line(new THREE.BufferGeometry().setFromPoints([new V(CORD0.x, 2.95, CORD0.z), CORD0.clone()]), new THREE.LineBasicMaterial({ color: '#a29b8c' })); scene.add(cordLine);
 const cordH = mesh(new THREE.CylinderGeometry(.022, .022, .11, 12), ink(.75, { lamp: 1.4 }), scene, { line: .004 });
 const HORN = octPt(DOOR_A + .45, AP + .5).setY(2.6); mesh(lathe([[.03, 0], [.05, .2], [.12, .4], [.24, .55], [.26, .57]], 24).rotateX(Math.PI / 2), ink(.6, { lamp: .6 }), scene, { p: [HORN.x, HORN.y, HORN.z], r: [0, DOOR_A, 0], line: .006 });
-const bellG = grp(scene, BELL.x, BELL.y, BELL.z); mesh(lathe([[0, 0], [.07, 0], [.075, .01], [.06, .06], [.045, .12], [.03, .14], [0, .145]], 28).translate(0, -.14, 0), ink(.8, { lamp: 1.4 }), bellG, { line: .004 }); mesh(new THREE.BoxGeometry(.03, .05, .2), ink(.3), bellG, { p: [0, .02, .08] });
-for (let k = 0; k < 3; k++) { const a = 1.85 + k * .32, p = octPt(a, AP - .4); mesh(new THREE.BoxGeometry(.7, .05, .36), ink(.55, { lamp: 1.2 }), scene, { p: [p.x, .44, p.z], r: [0, -a + Math.PI / 2, 0], line: .004 }); }
-const SEATS = Array.from({ length: 7 }, (_, k) => octPt(1.7 + k * .17, AP - .42));
+const bellG = grp(scene, BELL.x, BELL.y, BELL.z); mesh(lathe([[0, 0], [.07, 0], [.075, .01], [.06, .06], [.045, .12], [.03, .14], [0, .145]], 28).translate(0, -.14, 0), ink(.8, { lamp: 1.4 }), bellG, { line: .004 }); mesh(new THREE.CylinderGeometry(.008, .008, 2.95 - BELL.y, 6).translate(0, (2.95 - BELL.y) / 2, 0), ink(.3), bellG);
+const SEATS = [[.72, -.2], [.5, -.48], [.15, -.66], [-.25, -.7], [.95, -.45], [.75, -.85], [-.65, -.8]].map(([u, w]) => new V(SEAT.x + u, 0, SEAT.z - w));
+for (const q of SEATS) mesh(new THREE.CylinderGeometry(.16, .18, .44, 14).translate(0, .22, 0), ink(.45, { lamp: 1.2 }), scene, { p: [q.x, 0, q.z], line: .004 });
 // PROPS: things you can pick up, put down, drop and throw (and, mostly, they come back)
 const PROPS = [];
 function prop(name, g, home, r, o = {}) { const p = { name, g, home: home.clone(), r, st: 'rest', vel: new V(), hand: null, off: new V(), qOff: new Qn(), t: 0, ...o }; g.position.copy(home); PROPS.push(p); return p; }
 const canG = grp(); mesh(lathe([[0, 0], [.065, 0], [.068, .015], [.068, .1], [.04, .14], [.015, .155], [0, .155]], 28), ink(.78, { lamp: 1.4 }), canG, { line: .004 });
 mesh(new THREE.CylinderGeometry(.006, .012, .13, 8).translate(0, .065, 0).rotateZ(-1.0).translate(.06, .1, 0), ink(.5), canG, { line: .003 }); mesh(new THREE.TorusGeometry(.04, .008, 6, 16, Math.PI), ink(.4), canG, { p: [-.065, .085, 0], r: [0, 0, Math.PI / 2] });
-const CAN = prop('can', canG, new V(SHELF.x, SHELF.y, -.62), .13); const CANE = new THREE.Euler(); const SPOUT = new V(.16, .16, 0);
+const CAN = prop('can', canG, tblAt(.28, .9, .1), .13); const CANE = new THREE.Euler(); const SPOUT = new V(.16, .16, 0);
 const boxG = grp(); mesh(new THREE.BoxGeometry(.11, .035, .065), ink(.85, { lamp: 1.4 }), boxG, { p: [0, .018, 0], line: .003 }); mesh(new THREE.BoxGeometry(.112, .03, .004), ink(.15), boxG, { p: [0, .018, .033] });
 { const t = canvasTex(256, 64, (g) => { g.fillStyle = '#ece6d6'; g.fillRect(0, 0, 256, 64); g.fillStyle = '#121212'; g.font = '400 34px "IM Fell English SC"'; g.textAlign = 'center'; g.fillText('Safety Matches', 128, 44); }); mesh(new THREE.PlaneGeometry(.1, .025), new THREE.MeshBasicMaterial({ map: t }), boxG, { p: [0, .0362, 0], r: [-Math.PI / 2, 0, 0] }); }
-const BOX = prop('box', boxG, new V(SHELF.x, SHELF.y, -.36), .06);
+const BOX = prop('box', boxG, tblAt(.12, .9, .11), .06);
 const mugG = grp(); mesh(lathe([[0, 0], [.04, 0], [.042, .005], [.042, .095], [.038, .095], [.036, .01], [0, .01]], 24), ink(.88, { lamp: 1.4 }), mugG, { line: .003 }); mesh(new THREE.TorusGeometry(.025, .007, 6, 14, Math.PI * 1.2), ink(.88), mugG, { p: [.045, .05, 0], r: [0, 0, -Math.PI / 2 - .3] });
 const coffee = mesh(new THREE.CircleGeometry(.036, 20).rotateX(-Math.PI / 2), ink(.05, { rim: 0 }), mugG, { p: [0, .08, 0] });
-const MUG = prop('mug', mugG, new V(SHELF.x, SHELF.y, -.1), .08, { level: 1, sip: 0 });
+const MUG = prop('mug', mugG, tblAt(.01, .9, .11), .08, { level: 1, sip: 0 });
 const ringG = grp(); mesh(new THREE.TorusGeometry(.2, .055, 10, 28), ink(0, { em: .78, rim: .5 }), ringG, { line: .004 }); for (let k = 0; k < 4; k++) mesh(new THREE.TorusGeometry(.2, .058, 6, 8, .3), ink(.08), ringG, { r: [0, 0, k * Math.PI / 2 - .15] });
 const RING = prop('ring', ringG, HOOK, .24, { onSea: false, sailor: null, far: new V(), thrown: false });
 const coil = mesh(new THREE.TorusGeometry(.09, .03, 8, 20), ink(.7, { lamp: 1.3 }), scene, { p: [CLEAT.x, CLEAT.y, CLEAT.z], r: [Math.PI / 2, 0, 0], line: .004 });
 const ROPE_N = 24, ropeG = new THREE.BufferGeometry().setFromPoints(Array.from({ length: ROPE_N }, () => new V())), rope = new THREE.Line(ropeG, new THREE.LineBasicMaterial({ color: '#cfc8b6' })); scene.add(rope); rope.frustumCulled = false; rope.visible = false;
 const MATCHES = [];
-const gull = grp(scene); const GULL = { st: 'perch', t: 0, hand: null, home: octPt(DOOR_A + .3, 3.28).setY(1.1) };
+const gull = grp(scene); const GULL = { st: 'perch', t: 0, hand: null, home: new V(SEAT.x + .27, 1.47, SEAT.z + .27) };
 { const w = ink(.95, { lamp: .8 }); mesh(new THREE.SphereGeometry(.07, 14, 10).scale(1.6, .9, 1), w, gull, { line: .004 }); mesh(new THREE.SphereGeometry(.048, 12, 8), w, gull, { p: [.095, .05, 0], line: .004 }); mesh(new THREE.ConeGeometry(.016, .06, 6).rotateZ(-Math.PI / 2), ink(.5), gull, { p: [.155, .045, 0] });
   GULL.wl = mesh(new THREE.BoxGeometry(.08, .01, .15).translate(0, 0, .075), ink(.4), gull, { p: [0, .04, .04] }); GULL.wr = mesh(new THREE.BoxGeometry(.08, .01, .15).translate(0, 0, -.075), ink(.4), gull, { p: [0, .04, -.04] }); }
 
@@ -356,7 +359,7 @@ function updShips(dt) { let i = 0;
   for (let k = SHIPS.length - 1; k >= 0; k--) if (SHIPS[k].fade >= 1) { scene.remove(SHIPS[k].g); SHIPS.splice(k, 1); } }
 function wreck(s) { if (s.st === 'wreck') return; s.st = 'wreck'; s.sink = 0; s.side = Math.random() < .5 ? -1 : 1; S.lost++; drawBoard(); sfx('crunch', _v.set(s.x, SEA, s.z)); puff(s.x, SEA + 2, s.z, 26, { s: 1.2, sp: 6, up: 8, life: 1.2, g: 1 });
   const n = s.type === 'sail' ? 1 : s.type === 'tug' ? 2 : 3; for (let k = 0; k < n; k++) setTimeout(() => spawnSwimmer(s.x + rand(-6, 6), s.z + rand(-6, 6)), 900 + k * 500);
-  if (!S.tut.wreck) { S.tut.wreck = 1; caption('Men in the water. Throw them the life ring by the door.', 5); caption('When one holds on, haul the rope in at the cleat.', 5); } }
+  if (!S.tut.wreck) { S.tut.wreck = 1; caption('Men in the water. Throw them the life ring, at your left hand. Out the open door.', 5); caption('When one holds on, haul the rope in at the cleat.', 5); } }
 
 // ═══════════════════════════ SAILORS: in the sea (small, far, shouting), then in your lantern room (life-size, grateful, damp) ═══════════════════════════
 const SWIM = [], CREW = [];
@@ -409,7 +412,7 @@ function updCrew(dt) { camera.getWorldPosition(_v3);
     if (c.st === 'grabbed') { armA = -2.6 + Math.sin(c.t * 14) * .6; armB = -2.6 - Math.sin(c.t * 14) * .6; c.legs[0].rotation.x = Math.sin(c.t * 12) * .8; c.legs[1].rotation.x = -Math.sin(c.t * 12) * .8; if (Math.random() < dt * 1.2) sfx('help', g.position); }
     if (c.st === 'climb') { g.position.y = Math.min(0, g.position.y + dt * .5); if (g.position.y >= 0) c.st = 'walk'; }
     if (c.st === 'walk') { if (!c.seat) c.seat = seatFor(); const dx = c.seat.x - g.position.x, dz = c.seat.z - g.position.z, d = Math.hypot(dx, dz); if (d > .05) { const sp = Math.min(d, .6 * dt); g.position.x += dx / d * sp; g.position.z += dz / d * sp; g.rotation.y = Math.atan2(dx, dz); c.legs[0].rotation.x = Math.sin(c.t * 7) * .5; c.legs[1].rotation.x = -Math.sin(c.t * 7) * .5; armA = Math.sin(c.t * 7) * .4; armB = -armA; } else c.st = 'sit'; }
-    if (c.st === 'sit') { c.hip.position.y = lerp(c.hip.position.y, .5, damp(dt, .2)); c.legs.forEach(l => l.rotation.x = lerp(l.rotation.x, -1.45, damp(dt, .2))); const yaw = Math.atan2(CEN.x - g.position.x, CEN.z - g.position.z); g.rotation.y += angDiff(yaw, g.rotation.y) * damp(dt, .4);
+    if (c.st === 'sit') { c.hip.position.y = lerp(c.hip.position.y, .5, damp(dt, .2)); c.legs.forEach(l => l.rotation.x = lerp(l.rotation.x, -1.45, damp(dt, .2))); const yaw = Math.atan2(SEAT.x + .25 - g.position.x, SEAT.z - .6 - g.position.z); g.rotation.y += angDiff(yaw, g.rotation.y) * damp(dt, .4);
       const near = Math.hypot(_v3.x - g.position.x, _v3.z - g.position.z) < 1.3; let handNear = false; for (const h of PH) if (h.tracked && h.P.distanceTo(_v.copy(g.position).setY(1.1)) < .5) handNear = true;
       if (S.panic > 0) { armA = -2.9 + Math.sin(c.t * 20) * .3; armB = -2.9 - Math.sin(c.t * 20) * .3; } else if (S.cheer > 0) { armA = -2.6 + Math.sin(c.t * 12) * .4; armB = -2.6 - Math.sin(c.t * 12) * .4; c.hip.position.y = .5 + Math.abs(Math.sin(c.t * 9)) * .04; } else if (c.salute > 0) { c.salute -= dt; armB = -2.7; } else if (S.music > 0) { const b = Math.sin(T * 5.2 + c.t); armA = -1 + b * .5; armB = -1 - b * .5; c.hip.position.y = .5 + Math.abs(b) * .03; if (Math.random() < dt * .7) sfx('la', _v.copy(g.position).setY(1.1)); } else if (handNear || c.wave > 0) { armB = -2.4 + Math.sin(c.t * 10) * .5; c.wave = Math.max(0, c.wave - dt); } else if (c.sulk > .5) { armA = armB = .15; } else { armA = Math.sin(c.t * .8) * .05; armB = -armA; }
       if (near && !c.greeted) { c.greeted = 1; c.wave = 2; sfx(c.sulk > .5 ? 'hmph' : 'thanks', _v.copy(g.position).setY(1), 1); } if (!near) c.greeted = 0; }
@@ -454,8 +457,8 @@ function updKraken(dt) { const N = NIGHTS[S.n] || NIGHTS[0];
     const h = t.st === 'rise' ? s01(t.t / 2.5) : t.st === 'down' ? 1 - s01(t.t / (t.shy > 1.1 ? .7 : 1.6)) : 1, curl = Math.min(1, t.shy), tall = S.eyeOn ? 2.4 : 1;
     seaTent(t, h, curl, tall); }
   // the one at your window, night three
-  if (WTENT.st === 'off' && KR.st === 'off' && !KR.done && N.kraken && S.phase === 'night' && ((S.nt > 50 && !S.tut.window) || (KR.at && S.nt > KR.at))) { WTENT.angry = !!S.tut.window; S.tut.window = 1; KR.at = 0; camera.getWorldPosition(_v); camera.getWorldDirection(_v2); _v2.y = 0; _v2.normalize(); let best = PANES[0], bs = -9; for (const p of PANES) { const d = _v3.set(p.c.x - _v.x, 0, p.c.z - _v.z); const L = d.length(); const sc = d.normalize().dot(_v2) - L * .25; if (sc > bs) { bs = sc; best = p; } }
-    const vc = CREW.find(c => c.st === 'sit'); if (vc) { const va = Math.atan2(vc.g.position.z - CEN.z, vc.g.position.x - CEN.x); best = PANES.reduce((a, p) => Math.abs(angDiff(p.a, va)) < Math.abs(angDiff(a.a, va)) ? p : a); } WTENT.pane = best; WTENT.k = 0; WTENT.st = 'rise'; WTENT.t = 0; wt.visible = true; sfx('glub', best.c, .7); }
+  if (WTENT.st === 'off' && KR.st === 'off' && !KR.done && N.kraken && S.phase === 'night' && ((S.nt > 50 && !S.tut.window) || (KR.at && S.nt > KR.at))) { WTENT.angry = !!S.tut.window; S.tut.window = 1; KR.at = 0; camera.getWorldPosition(_v); camera.getWorldDirection(_v2); _v2.y = 0; _v2.normalize(); let best = FRONTP[0], bs = -9; for (const p of FRONTP) { const d = _v3.set(p.c.x - _v.x, 0, p.c.z - _v.z); const L = d.length(); const sc = d.normalize().dot(_v2) - L * .25; if (sc > bs) { bs = sc; best = p; } }
+    WTENT.pane = best; WTENT.k = 0; WTENT.st = 'rise'; WTENT.t = 0; wt.visible = true; sfx('glub', best.c, .7); }
   if (WTENT.st !== 'off') { const W = WTENT; W.t += dt; const out = new V(Math.cos(W.pane.a), 0, Math.sin(W.pane.a)), tan = new V(-out.z, 0, out.x), base = W.pane.c.clone().addScaledVector(out, .12);
     const up = W.st === 'rise' ? s01(W.t / 3) : W.st === 'tap' ? 1 : W.st === 'shy' ? 1 - s01(W.t / .6) : 1 - s01(W.t / 2.5);
     wtSegs.forEach((m, i) => { const f = i / 13, press = W.st === 'tap' ? wtPress(W, f) : 0; let lat, yy; if (f < .62) { const k = f / .62; yy = -.4 + k * 2.1; lat = Math.sin(k * 2.6 + T * 1.5) * .12 * k; } else { const k = (f - .62) / .38, a = k * 3.6 + Math.sin(T * 2) * .25, R = .3 * (1 - k * .45); yy = 1.7 + R * Math.sin(a); lat = Math.sin(2.6 + T * 1.5) * .12 + R * (1 - Math.cos(a)); } yy = -.4 + (yy + .4) * up; m.position.copy(base).addScaledVector(tan, lat).addScaledVector(out, .04 - press); m.position.y = yy; m.visible = yy > -.2; }); wtTube.set(wtSegs.map(s => s.position));
@@ -476,7 +479,7 @@ function updKraken(dt) { const N = NIGHTS[S.n] || NIGHTS[0];
 const KR = { st: 'off', t: 0, at: 0, done: false, pane: null, vic: null, prop: null, p: 0, reach: 0, hand: null, last: new V(), slapT: 0, flinch: 0, pts: Array.from({ length: 14 }, () => new V()), start: new V(), hole: new V(), base: new V(), out: new V(), inside: new V() };
 function krTarget(o) { if (KR.vic) return o.copy(KR.vic.g.position).setY(KR.vic.g.position.y + KR.vic.hip.position.y + .25);
   if (KR.st === 'drag' || KR.st === 'yank') return o.lerpVectors(KR.start, KR.hole, s01(KR.p) * .9); if (KR.prop === HAT && HAT.st === 'worn') return camera.getWorldPosition(o).setY(o.y + .08); return o.copy(KR.prop.g.position).setY(KR.prop.g.position.y + .05); }
-function startGrab(best) { KR.done = true; KR.vic = CREW.find(c => c.st === 'sit') || null; KR.prop = KR.vic ? null : HAT.st === 'worn' ? HAT : MUG;
+function startGrab(best) { KR.done = true; KR.vic = CREW.filter(c => c.st === 'sit').sort((a, b) => a.g.position.distanceTo(best.c) - b.g.position.distanceTo(best.c))[0] || null; KR.prop = KR.vic ? null : HAT.st === 'worn' ? HAT : MUG;
   KR.pane = best; KR.out.set(Math.cos(best.a), 0, Math.sin(best.a)); KR.hole.copy(best.c).setY(1.5); KR.base.copy(best.c).addScaledVector(KR.out, 1.4).setY(-.8); KR.inside.copy(best.c).addScaledVector(KR.out, -.45).setY(0);
   KR.st = 'smash'; KR.t = 0; KR.p = .4; KR.reach = 0; KR.flinch = 0; wt.visible = true; wtSuck.forEach(m => m.visible = false); sfx('glub', KR.hole, .8); }
 function krFree(why) { if (KR.hand) { KR.hand.hold = null; KR.hand = null; } sfx('eep', KR.hole); buzzAll(.6, 60);
@@ -592,7 +595,7 @@ function updFun(dt) { updFW(dt); if (S.phase === 'poster') return;
     c.hip.scale.lerp(_v2.set(1, 1, 1), damp(dt, .08)); }
   // bonk: things thrown at the crew
   for (const p of PROPS) { if (p.st !== 'fly' || p.vel.length() < 1.2 || p === RING) continue; for (const c of CREW) { const hp = c.head.getWorldPosition(_v); if (p.g.position.distanceTo(hp) < .24 && (c.dizzy || 0) < 2) {
-        p.vel.multiplyScalar(-.25); c.dizzy = 3; sfx('bonk', hp); c.sulk = Math.min(1, c.sulk + .5); S.bonks = (S.bonks || 0) + 1; caption(pick(['Bonk.', 'He saw stars. Several.', 'That was a member of your crew.']), 2.2);
+        p.vel.multiplyScalar(-.25); c.dizzy = 3; sfx('bonk', hp); c.sulk = Math.min(1, c.sulk + .5); S.bonks = (S.bonks || 0) + 1; caption(p === HERRING ? 'Slapped with a herring. Traditional.' : pick(['Bonk.', 'He saw stars. Several.', 'That was a member of your crew.']), 2.2);
         if (Math.random() < .45) setTimeout(() => { if (p.st === 'rest' && CREW.includes(c) && p.g.position.distanceTo(c.g.position) < 1.6) { camera.getWorldPosition(_v); const d = _v.sub(p.g.position), tt = .9; p.vel.copy(d).divideScalar(tt); p.vel.y += .5 * CFG.G * tt; p.st = 'fly'; c.wave = 1; sfx('hmph', c.g.position); caption('He threw it back.', 2); } }, 1600);
         break; } } } }
 
@@ -600,7 +603,7 @@ function updFun(dt) { updFW(dt); if (S.phase === 'poster') return;
 const cardT = canvasTex(1024, 576, () => { }), capT = canvasTex(1024, 112, () => { }), board = canvasTex(256, 176, () => { });
 const cardM = mesh(new THREE.PlaneGeometry(3.2, 1.8), new THREE.MeshBasicMaterial({ map: cardT, transparent: true, depthTest: false, depthWrite: false, opacity: 0 }), scene); cardM.renderOrder = 4000;
 const capM = mesh(new THREE.PlaneGeometry(.62, .068), new THREE.MeshBasicMaterial({ map: capT, transparent: true, depthTest: false, depthWrite: false, opacity: 0 }), scene); capM.renderOrder = 4001;
-const boardM = mesh(new THREE.PlaneGeometry(.36, .25), new THREE.MeshBasicMaterial({ map: board }), scene, { p: [-.835, 1.5, -1.02], r: [0, Math.PI / 2, 0] }); mesh(new THREE.BoxGeometry(.02, .6, .4), ink(.3), scene, { p: [-.85, 1.3, -1.02] });
+const boardM = mesh(new THREE.PlaneGeometry(.36, .25), new THREE.MeshBasicMaterial({ map: board }), scene, { p: [CRANK.x - .2, 1.115, CRANK.z - .1], r: [-.25, Math.atan2(SEAT.x - CRANK.x + .2, SEAT.z - CRANK.z), 0, 'YXZ'] }); mesh(new THREE.BoxGeometry(.4, .27, .02), ink(.3), boardM, { p: [0, 0, -.012] });
 const CARD = { t: 0, dur: 0, on: false }, CAP = { t: 0, dur: 0, q: [], yaw: 0, init: false };
 function frame(g, w, h) { g.fillStyle = '#0e0e0d'; g.fillRect(0, 0, w, h); g.strokeStyle = '#ece6d6'; g.lineWidth = 4; g.strokeRect(34, 34, w - 68, h - 68); g.lineWidth = 1.5; g.strokeRect(48, 48, w - 96, h - 96);
   g.fillStyle = '#ece6d6'; for (const [x, y] of [[48, 48], [w - 48, 48], [48, h - 48], [w - 48, h - 48]]) { g.save(); g.translate(x, y); g.rotate(Math.PI / 4); g.fillRect(-9, -9, 18, 18); g.restore(); }
@@ -649,7 +652,7 @@ const flareAt = (x, z) => FLARE.w * (1 - s01((Math.hypot(x - FLARE.x, z - FLARE.
 const beamAtW = (x, z) => Math.max(flareAt(x, z), beamLamp(x, z)), beamLamp = (x, z) => { if (!LAMP.lit) return 0; const dx = x - CEN.x, dz = z - CEN.z, L = Math.hypot(dx, dz), a = Math.atan2(dz, dx); const f = y => 1 - s01((Math.abs(angDiff(a, y)) - CFG.HALF * .35) / (CFG.HALF * .65)); return SH.uBeamI.value * Math.max(f(LAMP.yaw), f(LAMP.yaw + Math.PI) * .55) * s01((L - 8) / 14) * (1 - s01((L - 160) / 260)); };
 const fogW = z => SH.uFog.value * s01((SH.uFogZ.value + 10 - z) / 50);
 const crankHandle = out => { crankKnob.updateMatrixWorld(true); return crankKnob.getWorldPosition(out); };
-function grabTargets() { const L = []; for (const p of PROPS) if (p !== BOX && p.st !== 'held' && p.st !== 'fly' && p.st !== 'out' && p.st !== 'haul' && p.st !== 'gone' && p.st !== 'rkt' && p.st !== 'star') L.push([p, p.g.position.clone().add(_v2.set(0, p === RING ? 0 : .05, 0)), p.r]);
+function grabTargets() { const L = []; for (const p of PROPS) if (p !== BOX && p.st !== 'held' && p.st !== 'fly' && p.st !== 'out' && p.st !== 'haul' && p.st !== 'gone' && p.st !== 'rkt' && p.st !== 'star' && p.st !== 'fetch' && p.st !== 'off') L.push([p, p.g.position.clone().add(_v2.set(0, p === RING ? 0 : .05, 0)), p.r]);
   L.push(['crank', crankHandle(new V()), .11]); L.push(['cord', cordH.position.clone(), .1]); L.push(['gull', gull.position.clone(), .14]); if (RING.st === 'out') L.push(['reel', CLEAT.clone(), .18]); if (CONC.st === 'held' && !CONC.h2) { concG.updateMatrixWorld(true); L.push(['conc2', CONCV.R.getWorldPosition(new V()), .14]); } if (KR.st === 'drag' && KR.vic) L.push(['victim', KR.vic.g.position.clone().setY(1), .4]);
   for (const m of MATCHES) if (m.st === 'rest') L.push([m, m.g.position.clone(), .05]); L.push(['lens', handRing.getWorldPosition(new V()), 0]); return L; }
 function lensGrab(p) { const r = Math.hypot(p.x - CEN.x, p.z - CEN.z); return Math.abs(r - RING_R) < .11 && Math.abs(p.y - .88) < .14; }
@@ -718,8 +721,9 @@ function release(h) { const k = h.hold; h.hold = null; if (releaseToy(h, k)) ret
   else if (k && k.isMatch) { k.st = 'fall'; k.hand = null; k.vel.copy(h.pv); }
   else if (k) { k.hand = null; k.st = 'fly'; k.vel.copy(h.pv).multiplyScalar(1.15); if (k === RING && k.vel.length() > 1.2) { k.vel.x *= 5; k.vel.z *= 5; k.vel.y = k.vel.y * 2 + 2.5; k.thrown = true; sfx('whoosh', k.g.position); } } }
 // prop physics: fall to the floor, the shelf or the gallery; bounce off glass; out the door and down to the sea (then it comes back)
-function supportY(x, y, z) { const r = Math.hypot(x - CEN.x, z - CEN.z); if (Math.abs(x - TBL.x) < .4 && Math.abs(z - TBL.z) < .17 && y > .75) return .8; if (Math.abs(x - SHELF.x) < .16 && z > -.8 && z < .1 && y > SHELF.y - .05) return SHELF.y; if (r < AP) return 0; if (r < 3.3) return -.02; return SEA; }
-function updProp(p, dt) { const g = p.g; p.t += dt; if (p.st === 'rest' && g.position.y < .35 && p.t > 5 && g.position.distanceTo(p.home) > .1) { p.st = 'gone'; p.t = 2.4; sfx('plip', g.position, .5); }
+function supportY(x, y, z) { const r = Math.hypot(x - CEN.x, z - CEN.z); { const dx = x - TBL.x, dz = z - TBL.z, al = dx * Math.cos(TBL_A) - dz * Math.sin(TBL_A), ac = dx * Math.sin(TBL_A) + dz * Math.cos(TBL_A); if (Math.abs(al) < .38 && Math.abs(ac) < .19 && y > .85) return .9; } if (r < AP) return 0; if (r < 3.3) return -.02; return SEA; }
+function updProp(p, dt) { const g = p.g; p.t += dt; if (p.st === 'rest' && g.position.y < .35 && p.t > 1 && g.position.distanceTo(p.home) > .1) { const c = fetchFor(p); if (c) { p.st = 'fetch'; p.t = 0; p.from = g.position.clone(); c.wave = 1.4; sfx('hmph', c.g.position, .8); S.fetches = (S.fetches || 0) + 1; if (S.fetches === 1) caption('Dropped it? Stay sitting. The crew will get that.', 3.5); else if (S.fetches % 4 === 0) caption(pick(['Butterfingers.', 'He brings it back. He says nothing. He says a lot.', 'The crew are keeping count.']), 2.5); } else if (p.t > 5) { p.st = 'gone'; p.t = 2.4; sfx('plip', g.position, .5); } }
+  if (p.st === 'fetch') { const k = s01(p.t / 1.4); g.position.lerpVectors(p.from, p.home, k); g.position.y += Math.sin(k * Math.PI) * .35; g.rotation.y += dt * 4; if (p.t > 1.4) { p.st = 'rest'; p.t = 0; g.position.copy(p.home); g.quaternion.identity(); sfx('plip', p.home, .6); } return; }
   if (p.st === 'held') { const h = p.hand; g.position.copy(h.P).add(p.off); g.quaternion.copy(h.q).multiply(p.qOff); return; }
   if (p.st === 'fly') { p.vel.y -= CFG.G * dt; const prev = g.position.clone(); g.position.addScaledVector(p.vel, dt); g.rotation.x += dt * (p === RING ? 2 : 4);
     const r0 = Math.hypot(prev.x - CEN.x, prev.z - CEN.z), r1 = Math.hypot(g.position.x - CEN.x, g.position.z - CEN.z);
@@ -755,24 +759,24 @@ function lightLamp() { LAMP.lit = true; LAMP.len = 0; LAMP.flare = 1.1; sfx('who
   if (S.phase === 'dark') { CAP.q.length = 0; CAP.cur = null; setPhase('lit'); setTimeout(() => { if (S.phase === 'lit') startNight(0); }, 3000); } else caption('Lit again.', 2); }
 function foghorn() { sfx('foghorn', HORN); S.fogPush = 14; puff(HORN.x, HORN.y, HORN.z, 14, { s: .3, sp: .2, vx: Math.cos(DOOR_A + .45) * 3, vz: Math.sin(DOOR_A + .45) * 3, up: .2, g: 0, drag: 1.2, life: 2, grow: 3, a: .3 });
   if (GULL.st === 'perch') { GULL.st = 'fly'; GULL.t = 0; } for (const c of CREW) c.sulk = Math.max(c.sulk, .3); setTimeout(() => { for (const s of SHIPS) if (s.st === 'sail' && Math.random() < .6) sfx('toot', _v.set(s.x, SEA + 8, s.z), .8); }, 2600); }
-function updGull(dt) { const G = GULL; G.t += dt;
-  if (G.st === 'perch') { gull.position.copy(G.home); if (S.music > 0) gull.position.y += Math.abs(Math.sin(T * 5.2)) * .05; G.wl.rotation.x = G.wr.rotation.x = 0; gull.rotation.set(0, -DOOR_A - .3 + Math.PI + Math.sin(T * .6) * .5, 0); }
+function updGull(dt) { const G = GULL; G.t += dt; G.gulp = Math.max(0, (G.gulp || 0) - dt); gull.scale.set(1, 1 + Math.sin(G.gulp * 14) * G.gulp * .25, 1 + G.gulp * .3);
+  if (G.st === 'perch' && (HERRING.st === 'rest' || HERRING.st === 'held' || HERRING.st === 'fly') && herG.position.distanceTo(gull.position) < .2) { if (HERRING.hand) { HERRING.hand.hold = null; HERRING.hand = null; } HERRING.st = 'off'; herG.visible = false; herG.position.y = SEA - 50; G.gulp = 1.6; sfx('slurp', gull.position, 1); S.herrings = (S.herrings || 0) + 1; caption(['Gone. Whole. In one go.', 'The gull has had a second herring. The letter said not to.', 'You keep doing this.'][Math.min(2, S.herrings - 1)], 3); }
+  if (G.st === 'perch') { gull.position.copy(G.home); if (S.music > 0) gull.position.y += Math.abs(Math.sin(T * 5.2)) * .05; G.wl.rotation.x = G.wr.rotation.x = 0; gull.rotation.set(0, Math.PI / 2 + Math.sin(T * .6) * .6, 0); }
   else if (G.st === 'held') { gull.position.copy(G.hand.P).y -= .05; const f = Math.sin(T * 40) * .9; G.wl.rotation.x = f; G.wr.rotation.x = -f; if (Math.random() < .02) sfx('squawk', gull.position, .6); }
   else if (G.st === 'fly') { const a = G.t * .7 + DOOR_A, r = 6 + 2 * Math.sin(G.t); gull.position.set(CEN.x + Math.cos(a) * r, 1.5 + Math.sin(G.t * 1.6) * .8, CEN.z + Math.sin(a) * r); gull.rotation.set(0, -a, .35); const f = Math.sin(T * 18) * .8; G.wl.rotation.x = f; G.wr.rotation.x = -f; if (G.t > 9) { G.st = 'perch'; sfx('squawk', gull.position, .5); } }
   for (const h of PH) if (h.tracked && !h.hold && G.st === 'perch' && h.tip.distanceTo(gull.position) < .1) { G.st = 'fly'; G.t = 0; sfx('squawk', gull.position); } }
 
 // ═══════════════════════════ TOYS: a cap, a spyglass, biscuits, a squeezebox, signal rockets ═══════════════════════════
-const TBL = octPt(1.45, 1.92), TBL_A = Math.PI / 2 - 1.45; const tblAt = (u, y = .8) => new V(TBL.x + Math.cos(TBL_A) * u, y, TBL.z - Math.sin(TBL_A) * u);
-mesh(new THREE.BoxGeometry(.8, .03, .32), ink(.5, { lamp: 1.3 }), scene, { p: [TBL.x, .785, TBL.z], r: [0, TBL_A, 0], line: .004 });
-for (const u of [-.36, .36]) for (const w of [-.12, .12]) { const p = tblAt(u, 0); mesh(new THREE.BoxGeometry(.03, .77, .03).translate(0, .385, 0), ink(.3), scene, { p: [p.x - Math.sin(TBL_A) * w, 0, p.z - Math.cos(TBL_A) * w] }); }
+mesh(new THREE.BoxGeometry(.76, .03, .38), ink(.5, { lamp: 1.3 }), scene, { p: [TBL.x, .885, TBL.z], r: [0, TBL_A, 0], line: .004 });
+for (const u of [-.34, .34]) for (const w of [-.15, .15]) { const p = tblAt(u, 0); mesh(new THREE.BoxGeometry(.03, .87, .03).translate(0, .435, 0), ink(.3), scene, { p: [p.x - Math.sin(TBL_A) * w, 0, p.z - Math.cos(TBL_A) * w] }); }
 const UP = new V(0, 1, 0), XAX = new V(1, 0, 0);
 // the keeper's cap: put it on. Or put it on someone else.
 const hatG = grp(); { const k = ink(.1, { lamp: 1.3 }); mesh(new THREE.CylinderGeometry(.1, .094, .065, 20).translate(0, .033, 0), k, hatG, { line: .004 }); mesh(new THREE.CylinderGeometry(.108, .104, .014, 20).translate(0, .07, 0), k, hatG, { line: .003 });
   mesh(new THREE.CircleGeometry(.1, 16, 0, Math.PI).rotateX(-Math.PI / 2).scale(1, 1, .75), ink(.05, { side: THREE.DoubleSide }), hatG, { p: [0, .006, -.02], r: [.18, 0, 0] }); mesh(new THREE.BoxGeometry(.035, .022, .006), ink(.95, { lamp: 1.5 }), hatG, { p: [0, .04, -.097] }); }
-const HAT = prop('hat', hatG, tblAt(-.3), .13, { crew: null });
+const HAT = prop('hat', hatG, tblAt(.25, .9, -.1), .13, { crew: null });
 // the spyglass: hold it to your eye
 const spyG = grp(); for (const [r, x0, x1, c] of [[.022, 0, .15, .72], [.018, .14, .26, .86], [.014, .25, .33, .7]]) mesh(new THREE.CylinderGeometry(r, r, x1 - x0, 14).rotateZ(Math.PI / 2).translate((x0 + x1) / 2 - .16, .022, 0), ink(c, { lamp: 1.4 }), spyG, { line: .003 });
-const SPY = prop('spy', spyG, tblAt(-.08), .14);
+const SPY = prop('spy', spyG, tblAt(.03, .9, -.1), .14);
 const scopeRT = new THREE.WebGLRenderTarget(512, 512); scopeRT.texture.encoding = THREE.sRGBEncoding; const scopeCam = new THREE.PerspectiveCamera(7, 1, .5, 2000);
 const scopeV = grp(camera, 0, 0, -1.5); scopeV.visible = false; { const o = { depthTest: false, depthWrite: false, transparent: true };
   mesh(new THREE.CircleGeometry(.36, 48), new THREE.MeshBasicMaterial({ map: scopeRT.texture, ...o }), scopeV).renderOrder = 4000; mesh(new THREE.RingGeometry(.355, 4, 48), new THREE.MeshBasicMaterial({ color: '#070707', ...o }), scopeV).renderOrder = 4001; mesh(new THREE.RingGeometry(.35, .375, 48), new THREE.MeshBasicMaterial({ color: '#8a7a5a', ...o }), scopeV).renderOrder = 4002; }
@@ -783,24 +787,24 @@ function renderScope() { camera.getWorldPosition(_v); const on = S.phase !== 'po
   if (!S.tut.spy) { S.tut.spy = 1; caption('The spyglass. Look along the sea for ships.', 3.5); }
   camera.getWorldDirection(_v2); if ((S.spyT || 0) < T) for (const s of SHIPS) { if (s.spied || s.st !== 'sail') continue; const dx = s.x - _v.x, dy = SEA + 4 - _v.y, dz = s.z - _v.z, L = Math.hypot(dx, dy, dz); if ((dx * _v2.x + dy * _v2.y + dz * _v2.z) / L > .9982) { s.spied = 1; S.spyT = T + 6; caption(pick(SPYLINES), 4.5); for (const c of CREW) c.wave = 1; break; } } }
 // ship's biscuits: bite, feed a sailor, or lose one to the gull
-mesh(new THREE.CylinderGeometry(.07, .07, .06, 20).translate(0, .03, 0), ink(.62, { lamp: 1.4 }), scene, { p: tblAt(.12).toArray(), line: .003 });
+mesh(new THREE.CylinderGeometry(.07, .07, .06, 20).translate(0, .03, 0), ink(.62, { lamp: 1.4 }), scene, { p: tblAt(-.12, .9, .11).toArray(), line: .003 });
 const biscG = grp(), biscM = mesh(new THREE.CylinderGeometry(.036, .036, .01, 16).translate(0, .005, 0), ink(.8, { lamp: 1.4 }), biscG, { line: .002 }); for (let i = 0; i < 5; i++) mesh(new THREE.SphereGeometry(.003, 4, 3), ink(.15), biscM, { p: [Math.cos(i * 1.26) * .018, .01, Math.sin(i * 1.26) * .018] });
-const BISC = prop('bisc', biscG, tblAt(.12, .862), .07, { bites: 0, bite: 0 });
+const BISC = prop('bisc', biscG, tblAt(-.12, .962, .11), .07, { bites: 0, bite: 0 });
 function biscGone() { if (BISC.hand) BISC.hand.hold = null; BISC.hand = null; BISC.st = 'gone'; BISC.t = 0; BISC.g.position.y = SEA - 50; }
 // the squeezebox: one hand on each end, pull and push
 const concG = grp(), CONCV = { L: grp(concG), R: grp(concG), pl: [] }; { const eg = new THREE.BoxGeometry(.035, .11, .11);
   for (const e of [CONCV.L, CONCV.R]) { mesh(eg, ink(.16, { lamp: 1.3 }), e, { line: .003 }); for (let i = 0; i < 3; i++) mesh(new THREE.CylinderGeometry(.007, .007, .008, 8), ink(.95, { lamp: 1.5 }), e, { p: [0, .057, -.03 + .03 * i] }); }
   CONCV.bel = mesh(new THREE.BoxGeometry(1, .1, .1).translate(.5, 0, 0), ink(.86, { lamp: 1.3 }), concG); for (let i = 0; i < 6; i++) CONCV.pl.push(mesh(new THREE.BoxGeometry(.004, .104, .104), ink(.08), concG)); }
-const CONC = prop('conc', concG, tblAt(.26, .86), .11, { h2: null, sp: .1, air: 0, dir: 0, ch: 0, au: null });
+const CONC = prop('conc', concG, tblAt(-.25, .96, .06), .11, { h2: null, sp: .1, air: 0, dir: 0, ch: 0, au: null });
 function concSpread(s) { CONC.sp = s; CONCV.R.position.x = s; CONCV.bel.position.x = .017; CONCV.bel.scale.x = Math.max(.001, s - .034); CONCV.pl.forEach((p, i) => p.position.x = .017 + (s - .034) * (i + 1) / 7); } concSpread(.1);
 const CONC_CH = [[293.7, 349.2, 440], [261.6, 329.6, 392], [349.2, 440, 523.3], [220, 277.2, 329.6]];
 function concAudio() { if (!A.ctx || CONC.au) return; const c = A.ctx, d = out(null, .3), g = c.createGain(), lp = c.createBiquadFilter(); g.gain.value = 0; lp.type = 'lowpass'; lp.frequency.value = 1600; g.connect(lp).connect(d);
   const os = []; for (let i = 0; i < 6; i++) { const o = c.createOscillator(); o.type = i % 2 ? 'sawtooth' : 'square'; o.frequency.value = CONC_CH[0][i >> 1] * (i % 2 ? 1.003 : .997); const og = c.createGain(); og.gain.value = i % 2 ? .5 : .25; o.connect(og).connect(g); o.start(); os.push(o); } CONC.au = { g, lp, os }; }
 // signal rockets: light the fuse with a match, point it out the door
-const BUCKET = octPt(1.08, 1.95); mesh(lathe([[0, 0], [.09, 0], [.11, .22], [.116, .23]], 20), ink(.38, { lamp: 1.3, side: THREE.DoubleSide }), scene, { p: [BUCKET.x, 0, BUCKET.z], line: .004 });
+const BUCKET = new V(SEAT.x + .42, 0, SEAT.z - .05); mesh(lathe([[0, 0], [.09, 0], [.1, .8], [.116, .82]], 20), ink(.38, { lamp: 1.3, side: THREE.DoubleSide }), scene, { p: [BUCKET.x, 0, BUCKET.z], line: .004 });
 const RKTS = [0, 1, 2].map(i => { const g = grp(); mesh(new THREE.CylinderGeometry(.004, .004, .42, 5).translate(0, 0, 0), ink(.6), g); mesh(new THREE.CylinderGeometry(.022, .022, .15, 12).translate(0, .28, 0), ink(.9, { lamp: 1.4 }), g, { line: .003 });
   mesh(new THREE.CylinderGeometry(.0225, .0225, .03, 12).translate(0, .3, 0), ink(.08), g); mesh(new THREE.ConeGeometry(.024, .06, 12).translate(0, .385, 0), ink(.2, { lamp: 1.3 }), g, { line: .003 }); mesh(new THREE.CylinderGeometry(.002, .002, .04, 4).translate(0, -.02, 0).rotateZ(.5).translate(.01, .205, 0), ink(.1), g);
-  return prop('rocket', g, new V(BUCKET.x + Math.cos(i * 2.1) * .04, .25, BUCKET.z + Math.sin(i * 2.1) * .04), .14, { fuse: 0, bounce: 0, hiss: 0 }); });
+  return prop('rocket', g, new V(BUCKET.x + Math.cos(i * 2.1) * .04, .92, BUCKET.z + Math.sin(i * 2.1) * .04), .14, { fuse: 0, bounce: 0, hiss: 0 }); });
 const FLARE = SH.uFlareP.value; const fusePos = (r, o) => o.set(.02, .18, 0).applyQuaternion(r.g.quaternion).add(r.g.position);
 function lightFuse(r) { r.fuse = 1.6; sfx('fuse', r.g.position); if (!S.tut.rkt) { S.tut.rkt = 1; caption('Point it out the door. Quickly.', 2.5); } }
 function launch(r) { if (r.hand) { r.hand.hold = null; r.hand = null; } r.st = 'rkt'; r.t = 0; r.bounce = 0; r.vel.copy(UP).applyQuaternion(r.g.quaternion).multiplyScalar(34); sfx('rocket', r.g.position); puff(r.g.position.x, r.g.position.y, r.g.position.z, 14, { s: .05, sp: .3, up: .2, g: 0, drag: 2, life: 1.5, grow: 4, a: .5 }); }
@@ -840,7 +844,7 @@ function updToys(dt) { const eye = camera.getWorldPosition(_v3); S.panic = Math.
   // high fives: when a sailor waves, slap it
   for (const c of CREW) { if (c.st !== 'sit' || !(c.wave > 0)) continue; c.mitts[1].updateMatrixWorld(true); const hp = c.mitts[1].getWorldPosition(_v);
     for (const h of PH) if (h.tracked && !h.hold && h.tip.distanceTo(hp) < .14 && h.tipVel.length() > .7 && (c.fiveT || 0) < T) { c.fiveT = T + 1.2; c.wave = 0; c.five = .35; sfx('slap', hp); buzz(h, .9, 40); puff(hp.x, hp.y, hp.z, 8, { s: .008, sp: .4, up: .3, life: .4 }); S.fives = (S.fives || 0) + 1; if (S.fives === 1) caption('High five. He has been waiting all night for that.', 3.5); } }
-  if (S.phase === 'night' && S.n === 0 && S.nt > 32 && !S.tut.toys) { S.tut.toys = 1; caption('Behind you, on the table: a cap, a spyglass, biscuits, a squeezebox. Rockets by the door.', 6); } }
+  if (S.phase === 'night' && S.n === 0 && S.nt > 32 && !S.tut.toys) { S.tut.toys = 1; caption('On the table at your left: a cap, a spyglass, biscuits, a squeezebox. Rockets in the stand at your right.', 6); } }
 function releaseToy(h, k) {
   if (k === 'victim') { KR.hand = null; return true; }
   if (k === 'conc2') { CONC.h2 = null; return true; }
@@ -850,12 +854,59 @@ function releaseToy(h, k) {
   if (k === BISC) for (const c of CREW) { if (c.st === 'sit' && biscG.position.distanceTo(c.head.getWorldPosition(_v)) < .35) { biscGone(); c.munch = 2.5; c.sulk = 0; sfx('thanks', _v, 1); if (!S.tut.feed) { S.tut.feed = 1; caption('He eats it in one go. He has not eaten since Tuesday.', 3.5); } return true; } }
   return false; }
 
+// ═══════════════════════════ THE KEEPER'S CHAIR: you sit; the game comes to you ═══════════════════════════
+// In the headset we measure where your head is once you are in, and move the room so you are sitting in this chair, facing the sea, at a keeper's eye height.
+const CHAIR = grp(scene, SEAT.x, 0, SEAT.z), CAL = { need: false, base: null, t: 0, dy: .38 };
+{ const wood = ink(.42, { lamp: 1.2 }), dark = ink(.22, { lamp: 1.2 });
+  CHAIR.dais = mesh(new THREE.CylinderGeometry(.62, .66, 1, 32).translate(0, .5, 0), ink(.36, { lamp: 1.1 }), CHAIR, { line: .005 }); CHAIR.dais.scale.y = .38;
+  mesh(new THREE.BoxGeometry(.54, .07, .5), wood, CHAIR, { p: [0, .8, .06], line: .004 });
+  mesh(new THREE.BoxGeometry(.5, .62, .05), wood, CHAIR, { p: [0, 1.15, .33], r: [.1, 0, 0], line: .004 });
+  for (const x of [-.27, .27]) { mesh(new THREE.CylinderGeometry(.025, .025, 1.1, 8).translate(0, .55, 0), dark, CHAIR, { p: [x, .4, .33], line: .003 }); mesh(new THREE.SphereGeometry(.04, 12, 8), ink(.7, { lamp: 1.4 }), CHAIR, { p: [x, 1.5, .33], line: .003 });
+    mesh(new THREE.BoxGeometry(.06, .045, .44), wood, CHAIR, { p: [x * 1.1, 1.0, .1], line: .003 }); mesh(new THREE.CylinderGeometry(.018, .018, .2, 8), dark, CHAIR, { p: [x * 1.1, .9, -.08] });
+    for (const z of [-.16, .3]) mesh(new THREE.CylinderGeometry(.025, .02, .8, 8).translate(0, .4, 0), dark, CHAIR, { p: [x * .92, 0, z] }); }
+  mesh(new THREE.BoxGeometry(.5, .06, .44), ink(.75, { lamp: 1.3 }), CHAIR, { p: [0, .855, .06] }); }   // a cushion, somewhat flattened
+function seatChair() { CHAIR.visible = CAL.dy > .08 || SIM; CHAIR.dais.scale.y = Math.max(.001, CAL.dy); }
+function calibrate(frame) { const pose = frame.getViewerPose(CAL.base); if (!pose || ++CAL.t < 12) return; const p = pose.transform.position, o = pose.transform.orientation;
+  const f = new V(0, 0, -1).applyQuaternion(new Qn(o.x, o.y, o.z, o.w)); f.y = 0; if (f.lengthSq() < 1e-4) f.set(0, 0, -1); f.normalize();
+  const dy = clamp(EYE_H - p.y, 0, .6), M = new THREE.Matrix4().makeTranslation(SEAT.x, dy, SEAT.z).multiply(new THREE.Matrix4().makeRotationFromQuaternion(new Qn().setFromUnitVectors(f, new V(0, 0, -1)))).multiply(new THREE.Matrix4().makeTranslation(-p.x, 0, -p.z));
+  const pos = new V(), q = new Qn(), sc = new V(); M.invert().decompose(pos, q, sc);
+  renderer.xr.setReferenceSpace(CAL.base.getOffsetReferenceSpace(new XRRigidTransform({ x: pos.x, y: pos.y, z: pos.z }, { x: q.x, y: q.y, z: q.z, w: q.w }))); CAL.need = false; CAL.dy = dy; seatChair(); }
+
+// ═══════════════════════════ PAUSE, AND PICKING UP WHERE YOU LEFT OFF ═══════════════════════════
+const PAUSE = { on: false };
+function setPause(on) { if (PAUSE.on === on) return; PAUSE.on = on; if (A.ctx) { if (on) A.ctx.suspend(); else A.ctx.resume(); }
+  if (!on) { clock.getDelta(); if (S.phase !== 'poster' && S.phase !== 'end') caption(pick(['Welcome back. The sea waited.', 'The crew kept your chair warm.', 'While you were away, the gull sat in your chair.']), 3); } }
+document.addEventListener('visibilitychange', () => setPause(document.hidden));
+const SAVE = { get() { try { return JSON.parse(localStorage.getItem('keeper.save') || 'null'); } catch (e) { return null; } }, set(v) { try { if (v) localStorage.setItem('keeper.save', JSON.stringify(v)); else localStorage.removeItem('keeper.save'); } catch (e) { } } };
+function saveAt(n) { SAVE.set({ n, crew: Math.min(5, CREW.length), safe: S.safe, lost: S.lost, fished: S.fished, swam: S.swam, shooed: S.shooed, gifts: S.gifts || 0 }); }
+function contLabel() { const v = SAVE.get(), b = $('cont'); if (!b) return; b.hidden = !(v && v.n > 0); if (v && v.n > 0) b.textContent = 'Continue: Night the ' + ['First', 'Second', 'Third'][v.n]; }
+function resume(v) { Object.assign(S, { safe: v.safe, lost: v.lost, fished: v.fished, swam: v.swam, shooed: v.shooed, gifts: v.gifts });
+  for (const k of ['strike', 'whoomph', 'wick', 'oil', 'dry', 'wind', 'toys', 'wreck', 'blind', 'panic', 'hat', 'spy', 'bisc', 'conc', 'feed', 'rkt', 'star', 'shanty', 'tickle']) S.tut[k] = 1; if (v.n > 1) S.tut.fog = S.tut.soot = 1;
+  Object.assign(LAMP, { lit: true, len: 1, oil: 1, wind: .9 }); for (let i = 0; i < v.crew; i++) { const c = makeCrew(SEATS[i]); c.seat = SEATS[i]; c.st = 'walk'; }
+  if (S.gifts) showHerring(); startNight(v.n); }
+
+// ═══════════════════════════ A LETTER, DELIVERED BY GULL (after each night), AND A HERRING ═══════════════════════════
+const herG = grp(); { const m = ink(.82, { lamp: 1.4 }); mesh(new THREE.SphereGeometry(.04, 14, 10).scale(2.6, .9, .55), m, herG, { line: .003 }); mesh(new THREE.ConeGeometry(.035, .06, 4).rotateZ(Math.PI / 2).scale(1, 1, .3), m, herG, { p: [-.13, 0, 0], line: .003 });
+  mesh(new THREE.SphereGeometry(.007, 8, 6), ink(.05), herG, { p: [.075, .012, .02] }); mesh(new THREE.SphereGeometry(.007, 8, 6), ink(.05), herG, { p: [.075, .012, -.02] }); for (let i = 0; i < 5; i++) mesh(new THREE.BoxGeometry(.003, .05, .003), ink(.4), herG, { p: [.03 - i * .022, 0, .021] }); }
+scene.add(herG); const HERRING = prop('herring', herG, tblAt(-.17, .93, -.1), .1); HERRING.st = 'off'; herG.visible = false;
+function showHerring() { HERRING.st = 'rest'; HERRING.t = 0; herG.visible = true; herG.position.copy(HERRING.home); herG.quaternion.identity(); puff(HERRING.home.x, HERRING.home.y + .05, HERRING.home.z, 10, { s: .015, sp: .3, up: .3, life: .6 }); }
+function nightLetter(n) { S.gifts = (S.gifts || 0) + 1; saveAt(n + 1); sfx('squawk', gull.position, 1); GULL.gulp = 1.2;
+  const lost = S.lost, safe = S.safe;
+  const L = n === 0 ? (lost === 0 ? ['Not one of us hit a rock tonight.', 'We are as surprised as you are.', 'Enclosed: one (1) herring, in thanks.', '— Capt. Ollerby, of the Persistent']
+    : [safe + ' of us got home. ' + lost + ' of us have notes.', 'Still: you tried, and the light was lovely.', 'Enclosed: one (1) herring. Not for the gull.', '— Capt. Ollerby, of the Persistent'])
+    : ['In the fog we heard your horn and were', 'frightened in exactly the right direction.', 'Enclosed: another herring. The first was', 'for the gull, obviously. — The Harbourmaster'];
+  setTimeout(() => { card([['A Letter, Delivered by Gull', 46, 'sc'], ['Dear Keeper,', 32, 'i'], ...L.map(t => [t, 30, 'i'])], 6.5); }, 1200);
+  setTimeout(() => { showHerring(); caption(pick(['It had been inside the gull. Most letters have not.', 'The gull is very pleased with itself.']), 3.5); }, 8000); }
+
+// dropped something? a sailor will get it (you are sitting down; you are the keeper)
+function fetchFor(p) { let best = null, bd = 3; for (const c of CREW) { if (c.st !== 'sit') continue; const d = c.g.position.distanceTo(p.g.position); if (d < bd) { bd = d; best = c; } } return best; }
+
 // ═══════════════════════════ THE NIGHTS ═══════════════════════════
 const S = { phase: 'poster', t: 0, n: 0, nt: 0, spawned: 0, spawnT: 0, safe: 0, lost: 0, fished: 0, swam: 0, shooed: 0, tut: {}, cheer: 0, fogPush: 0, eyeOn: false, flash: 0 };
 function setPhase(p) { S.phase = p; S.t = 0; }
 function startDark() { setPhase('dark'); S.n = 0; makeRocks(NIGHTS[0].rocks); drawBoard(); card([['The Keeper', 92, 'sc'], ['in which a lighthouse is kept, more or less', 38, 'i']], 4.5);
-  caption('The lamp is out, and ships are coming.', 4.5); caption('Take a match from the box on the shelf, to your right.', 6); }
-function startNight(n) { S.n = n; S.nt = 0; S.spawned = 0; S.spawnT = 6; if (n > 0) makeRocks(NIGHTS[n].rocks); drawBoard(); setPhase('night'); musicMode('night');
+  caption('The lamp is out, and ships are coming.', 4.5); caption('Take a match from the box on the table, at your left.', 6); }
+function startNight(n) { saveAt(n); S.n = n; S.nt = 0; S.spawned = 0; S.spawnT = 6; if (n > 0) makeRocks(NIGHTS[n].rocks); drawBoard(); setPhase('night'); musicMode('night');
   card([['Night the ' + ['First', 'Second', 'Third'][n], 66, 'sc'], [NIGHTS[n].sub, 42, 'i']], 4.5); SEAU.uWave.value = NIGHTS[n].storm ? 1.0 : .35; SH.uFogZ.value = -900; S.fogPush = 0; rain.visible = !!NIGHTS[n].storm; GLASSU.uRain.value = NIGHTS[n].storm ? 1 : 0; SH.uHaze.value = NIGHTS[n].storm ? .55 : .35;
   if (n === 0) { caption('Your job: keep the ships off the rocks.', 4); caption('The rocks only show up in your light. Grab the brass ring round the lens and turn it, to sweep the beam over them.', 6.5); caption('Ships steer round rocks they have seen. The dark ones, they hit.', 5); } }
 function updNight(dt) { const N = NIGHTS[S.n]; S.nt += dt;
@@ -865,18 +916,18 @@ function updNight(dt) { const N = NIGHTS[S.n]; S.nt += dt;
   if (N.storm && Math.random() < dt / 9) lightning();
   if ((S.warnN || 0) < 3 && (S.warnT || 0) < T) for (const sh of SHIPS) { if (sh.st !== 'sail') continue; const r = ROCKS.find(r => { const rx = r.x - sh.x, rz = r.z - sh.z, ah = rx * sh.hx + rz * sh.hz; return r.seen <= 0 && ah > 0 && ah < 60 && Math.abs(rx * -sh.hz + rz * sh.hx) < r.r + 10; }); if (r) { S.warnT = T + 25; S.warnN = (S.warnN || 0) + 1; caption('A ship is heading for a rock it cannot see. Swing your beam ahead of it.', 5); break; } }
   const busy = SHIPS.some(s => s.st === 'sail') || SWIM.length || RING.st === 'haul' || TENT.some(t => t.st !== 'hidden') || WTENT.st !== 'off' || KR.st !== 'off' || (N.kraken && KR.at > 0 && !KR.done);
-  if (S.spawned >= N.ships && !busy && S.nt > 10) { S.idle = (S.idle || 0) + dt; if (S.idle > 3) { S.idle = 0; if (S.n < 2) { caption(['Morning would have been nice. Instead: another night.', 'The sea took a breath. The keeper did not.'][S.n], 3.8); setPhase('between'); setTimeout(() => startNight(S.n + 1), 4200); } else { setPhase('eye'); S.eyeOn = true; EYE.st = 'rise'; EYE.t = 0; EYE.lit = 0; EYEG.position.y = SEA - 40; blush.material.opacity = 0; sfx('rumble', null); caption('Just a moment.', 2.5); } } } else S.idle = 0; }
+  if (S.spawned >= N.ships && !busy && S.nt > 10) { S.idle = (S.idle || 0) + dt; if (S.idle > 3) { S.idle = 0; if (S.n < 2) { caption(['Morning would have been nice. Instead: another night.', 'The sea took a breath. The keeper did not.'][S.n], 3.8); setPhase('between'); nightLetter(S.n); setTimeout(() => { if (S.phase === 'between') startNight(S.n + 1); }, 11000); } else { setPhase('eye'); S.eyeOn = true; EYE.st = 'rise'; EYE.t = 0; EYE.lit = 0; EYEG.position.y = SEA - 40; blush.material.opacity = 0; sfx('rumble', null); caption('Just a moment.', 2.5); } } } else S.idle = 0; }
 function lightning() { S.flash = .35; if (S.phase === 'night' && NIGHTS[S.n] && NIGHTS[S.n].kraken && EYE.st === 'off' && Math.random() < .6) { tzSight(); S.flash = .55; } setTimeout(() => sfx('thunder', null), rand(400, 1600)); }
 function startDawn() { setPhase('dawn'); fireworks(14, HARBOR); setTimeout(() => { S.cheer = 5; for (const c of CREW) c.wave = 5; }, 2500); sfx('dawn', null); musicMode('dawn'); rain.visible = false; GLASSU.uRain.value = 0; }
 function updDawn(dt) { const k = s01(S.t / 9); SH.uDawn.value = k; SH.uMoon.value = .32 * (1 - k); SH.uFog.value *= 1 - damp(dt, 1); SEAU.uWave.value = lerp(SEAU.uWave.value, .3, damp(dt, 2)); sun.visible = true; sun.position.set(900, lerp(-120, 220, k), -500); SH.uHaze.value = lerp(SH.uHaze.value, .2, damp(dt, 2));
   if (S.t > 3 && !S.tal) { S.tal = 1; crowdCheer(); }
   if (S.t > 10 && !S.tally) { S.tally = 1; card([['Dawn', 58, 'sc'], ['Ships brought home: ' + S.safe + '      Wrecked: ' + S.lost, 30, 'm'], ['Sailors hauled up: ' + S.fished + '      Swam, then climbed: ' + S.swam, 30, 'm'], ['Tentacles shooed: ' + S.shooed, 30, 'm'], [verdict(), 36, 'i']], 10); }
-  if (S.t > 21) { setPhase('end'); card([['The End', 74, 'sc'], ['Pinch to keep another night.', 36, 'i']], 9999); } }
+  if (S.t > 21) { setPhase('end'); SAVE.set(null); card([['The End', 74, 'sc'], ['Pinch to keep another night.', 36, 'i']], 9999); } }
 function verdict() { const s = S.safe, l = S.lost; if (l === 0) return 'Not one ship lost. The sea is furious.'; if (s > l * 3) return 'A fine keeper. Mostly.'; if (s >= l) return 'Adequate. The sailors have notes.'; return 'The harbourmaster would like a word.'; }
 function resetAll() { for (const s of SHIPS) scene.remove(s.g); SHIPS.length = 0; for (const p of SWIM) scene.remove(p.g); SWIM.length = 0; for (const c of CREW) scene.remove(c.g); CREW.length = 0; for (const m of MATCHES) scene.remove(m.g); MATCHES.length = 0; PARTS.length = 0;
-  Object.assign(S, { safe: 0, lost: 0, fished: 0, swam: 0, shooed: 0, tut: {}, cheer: 0, tal: 0, tally: 0, eyeOn: false, flash: 0 }); Object.assign(LAMP, { lit: false, len: 0, wind: .6, oil: .6, soot: 0, flare: 0, spin: 0, hand: null, blind: 0 });
+  Object.assign(S, { gifts: 0, herrings: 0, fetches: 0, safe: 0, lost: 0, fished: 0, swam: 0, shooed: 0, tut: {}, cheer: 0, tal: 0, tally: 0, eyeOn: false, flash: 0 }); Object.assign(LAMP, { lit: false, len: 0, wind: .6, oil: .6, soot: 0, flare: 0, spin: 0, hand: null, blind: 0 });
   SH.uDawn.value = 0; SH.uMoon.value = .32; SH.uFog.value = 0; SH.uHaze.value = .35; sun.visible = false; EYE.st = 'off'; EYEG.visible = false; TZ.n = 0; TZ.et = 0; S.tease = 0; WTENT.st = 'off'; wt.visible = false; for (const t of TENT) { t.st = 'hidden'; t.g.visible = false; t.cool = rand(3, 8); }
-  for (const p of PROPS) { p.st = 'rest'; p.g.position.copy(p.home); p.g.quaternion.identity(); p.hand = null; } RING.onSea = false; RING.sailor = null; RING.thrown = false; MUG.level = 1; KR.st = 'off'; KR.done = false; KR.at = 0; KR.vic = KR.prop = KR.hand = null; crackM.visible = false; for (const p of PANES) p.m.visible = true; WTENT.angry = false; HAT.crew = null; CONC.h2 = null; CONC.air = 0; concSpread(.1); BISC.bites = 0; biscM.scale.set(1, 1, 1); biscM.position.x = 0; FLARE.set(0, 0, 0, 0); for (const r of RKTS) { r.fuse = 0; r.g.visible = true; } S.panic = S.music = S.fives = 0; for (const h of PH) h.hold = null; CRK.hand = CORD.hand = REEL.hand = null; rain.visible = false; GLASSU.uRain.value = 0; SEAU.uWave.value = .35; musicMode('night'); }
+  for (const p of PROPS) { p.st = 'rest'; p.g.position.copy(p.home); p.g.quaternion.identity(); p.hand = null; } HERRING.st = 'off'; herG.visible = false; GULL.gulp = 0; RING.onSea = false; RING.sailor = null; RING.thrown = false; MUG.level = 1; KR.st = 'off'; KR.done = false; KR.at = 0; KR.vic = KR.prop = KR.hand = null; crackM.visible = false; for (const p of PANES) p.m.visible = true; WTENT.angry = false; HAT.crew = null; CONC.h2 = null; CONC.air = 0; concSpread(.1); BISC.bites = 0; biscM.scale.set(1, 1, 1); biscM.position.x = 0; FLARE.set(0, 0, 0, 0); for (const r of RKTS) { r.fuse = 0; r.g.visible = true; } S.panic = S.music = S.fives = 0; for (const h of PH) h.hold = null; CRK.hand = CORD.hand = REEL.hand = null; rain.visible = false; GLASSU.uRain.value = 0; SEAU.uWave.value = .35; musicMode('night'); }
 
 // ═══════════════════════════ AUDIO: all synthesized ═══════════════════════════
 const A = { ctx: null };
@@ -962,7 +1013,9 @@ const fadeM = new THREE.Mesh(new THREE.SphereGeometry(.38, 16, 12), new THREE.Me
 
 // ═══════════════════════════ LOOP ═══════════════════════════
 const clock = new THREE.Clock(); const DBG = { fdt: 0 };
-function loop(time, frame) { const dt = DBG.fdt || Math.min(clock.getDelta(), .05); T += dt; SH.uT.value = T; S.t += dt;
+function loop(time, frame) { if (PAUSE.on && !DBG.fdt) { clock.getDelta(); if (renderer.xr.isPresenting) try { renderer.xr.updateCamera(camera); } catch (e) { } renderer.render(scene, camera); return; }
+  if (CAL.need && frame && renderer.xr.isPresenting) calibrate(frame);
+  const dt = DBG.fdt || Math.min(clock.getDelta(), .05); T += dt; SH.uT.value = T; S.t += dt;
   if (!renderer.xr.isPresenting) { if (S.phase === 'poster') { const a = T * .04 + 2.2, r = 70; camera.position.set(CEN.x + Math.cos(a) * r, 6 + Math.sin(T * .1) * 2, CEN.z + Math.sin(a) * r); camera.lookAt(CEN.x, -4, CEN.z); } else if (SIM) simCamera(); }
   camera.getWorldPosition(SH.uCam.value);
   { const xr = renderer.xr.isPresenting && renderer.xr.getSession(), bl = xr && xr.renderState.baseLayer; PXH.value = bl ? bl.framebufferHeight : renderer.domElement.height; }
@@ -993,19 +1046,21 @@ function loop(time, frame) { const dt = DBG.fdt || Math.min(clock.getDelta(), .0
 // ═══════════════════════════ START, END ═══════════════════════════
 const framePoster = () => { const w = innerWidth, h = innerHeight; if (w / h > 1.1) camera.setViewOffset(w, h, -w * .15, 0, w, h); else camera.setViewOffset(w, h, 0, h * .18, w, h); };
 addEventListener('resize', () => { if (renderer.xr.isPresenting) return; camera.aspect = innerWidth / innerHeight; if (S.phase === 'poster') framePoster(); else camera.clearViewOffset(); camera.updateProjectionMatrix(); renderer.setSize(innerWidth, innerHeight); });
-function begin() { camera.clearViewOffset(); camera.fov = SIM ? 70 : 34; camera.updateProjectionMatrix(); $('ov').classList.add('hide'); resetAll(); fadeM.material.opacity = 1; startDark(); }
-function end() { resetAll(); makeRocks(6); setPhase('poster'); $('ov').classList.remove('hide'); camera.fov = 34; camera.aspect = innerWidth / innerHeight; framePoster(); camera.updateProjectionMatrix(); renderer.setSize(innerWidth, innerHeight); CARD.on = false; CAP.q.length = 0; CAP.cur = null; }
-$('go').onclick = async () => { audioInit(); if (!SIM && !navigator.xr) { $('msg').textContent = 'Open this page in the browser of your Meta Quest'; return; } if (SIM) return begin();
+function begin(v) { camera.clearViewOffset(); camera.fov = SIM ? 70 : 34; camera.updateProjectionMatrix(); $('ov').classList.add('hide'); resetAll(); fadeM.material.opacity = 1; if (v && v.n > 0) resume(v); else startDark(); }
+function end() { resetAll(); makeRocks(6); setPhase('poster'); $('ov').classList.remove('hide'); camera.fov = 34; camera.aspect = innerWidth / innerHeight; framePoster(); camera.updateProjectionMatrix(); renderer.setSize(innerWidth, innerHeight); CARD.on = false; CAP.q.length = 0; CAP.cur = null; contLabel(); }
+async function climb(v) { audioInit(); if (!SIM && !navigator.xr) { $('msg').textContent = 'Open this page in the browser of your Meta Quest'; return; } if (SIM) return begin(v);
   try { const s = await navigator.xr.requestSession('immersive-vr', { requiredFeatures: ['local-floor'], optionalFeatures: ['hand-tracking'] });
-    s.addEventListener('end', () => end()); await renderer.xr.setSession(s); renderer.xr.setFoveation(.3); begin();
-  } catch (e) { $('msg').textContent = 'Could not start · ' + e.message; } };
+    s.addEventListener('end', () => { setPause(false); end(); }); s.addEventListener('visibilitychange', () => setPause(s.visibilityState !== 'visible'));
+    await renderer.xr.setSession(s); renderer.xr.setFoveation(.3); CAL.base = renderer.xr.getReferenceSpace(); CAL.need = true; CAL.t = 0; try { CAL.base.addEventListener('reset', () => { CAL.need = true; CAL.t = 0; }); } catch (e) { } begin(v);
+  } catch (e) { $('msg').textContent = 'Could not start · ' + e.message; } }
+$('go').onclick = () => climb(null); $('cont').onclick = () => climb(SAVE.get());
 
 // ═══════════════════════════ SIM: ?sim — you stand in the lantern room; the mouse is your hand ═══════════════════════════
 // mouse = hand · hold = pinch · right-drag or arrows = look · wheel = reach · hold T = tip what you hold
 const SIMT = { yaw: 0, pitch: -.1, reach: .6, tilt: 0, drag: null, rdrag: false };
 const simRay = new THREE.Raycaster(), mouse = new THREE.Vector2();
 const simHand = grp(); for (const s of [-1, 1]) mesh(new THREE.SphereGeometry(.012, 12, 8), ink(0, { em: .95, rim: 0 }), simHand, { p: [s * .02, 0, 0] }); simHand.visible = false;
-function simCamera() { camera.position.set(0, 1.62, 0); camera.rotation.set(SIMT.pitch, SIMT.yaw, 0, 'YXZ'); }
+function simCamera() { camera.position.set(SEAT.x, EYE_H, SEAT.z); camera.rotation.set(SIMT.pitch, SIMT.yaw, 0, 'YXZ'); }
 function simPoint() { camera.updateMatrixWorld(); simRay.setFromCamera(mouse, camera); const o = simRay.ray.origin, d = simRay.ray.direction;
   if (SIMT.drag) { const n = camera.getWorldDirection(new V()), t = n.dot(_v.copy(SIMT.drag).sub(o)) / n.dot(d); return o.clone().addScaledVector(d, t); }
   let best = null, bt = 9; for (const [, p, r] of grabTargets()) { if (!r) continue; const t = _v.copy(p).sub(o).dot(d); if (t < 0) continue; const dist = _v2.copy(o).addScaledVector(d, t).distanceTo(p); if (dist < r * .8 && t < bt) { bt = t; best = p.clone(); } }
@@ -1015,7 +1070,7 @@ if (SIM) { addEventListener('mousemove', e => { mouse.set(e.clientX / innerWidth
   addEventListener('contextmenu', e => e.preventDefault()); addEventListener('wheel', e => { SIMT.reach = clamp(SIMT.reach - e.deltaY * .001, .25, 2.5); });
   addEventListener('mousedown', e => { if (e.target !== renderer.domElement) return; if (e.button === 2) { SIMT.rdrag = true; return; } PH[0].sim.pinch = true; SIMT.drag = PH[0].sim.p.clone(); }); addEventListener('mouseup', e => { if (e.button === 2) { SIMT.rdrag = false; return; } PH[0].sim.pinch = false; SIMT.drag = null; });
   addEventListener('keydown', e => { if (e.key === 't') SIMT.tilt = 1.9; if (e.key === 'ArrowLeft') SIMT.yaw += .15; if (e.key === 'ArrowRight') SIMT.yaw -= .15; if (e.key === 'ArrowUp') SIMT.pitch += .1; if (e.key === 'ArrowDown') SIMT.pitch -= .1; }); addEventListener('keyup', e => { if (e.key === 't') SIMT.tilt = 0; }); }
-window.__T = { TEASE, TZ, tzSight, S, LAMP, SHIPS, SWIM, CREW, ROCKS, TENT, EYE, WTENT, RING, CAN, MUG, BOX, PROPS, MATCHES, GULL, CFG, SH, PH, SIMT, camera, scene, renderer, startNight, startDark, startDawn, spawnShip, spawnSwimmer, wreck, foghorn, begin, caption, card, beamAtW, grab, release, lightLamp, lightning, hauledArrival, hatchArrival, pickTarget, HAT, SPY, BISC, CONC, RKTS, KR, startGrab, crewArms, fireworks, FW, crackM, PANES, lightFuse, launch, renderScope,
+window.__T = { SEAT, CHAIR, CAL, PAUSE, setPause, SAVE, resume, nightLetter, HERRING, GULL, FRONTP, TBL, TEASE, TZ, tzSight, S, LAMP, SHIPS, SWIM, CREW, ROCKS, TENT, EYE, WTENT, RING, CAN, MUG, BOX, PROPS, MATCHES, GULL, CFG, SH, PH, SIMT, camera, scene, renderer, startNight, startDark, startDawn, spawnShip, spawnSwimmer, wreck, foghorn, begin, caption, card, beamAtW, grab, release, lightLamp, lightning, hauledArrival, hatchArrival, pickTarget, HAT, SPY, BISC, CONC, RKTS, KR, startGrab, crewArms, fireworks, FW, crackM, PANES, lightFuse, launch, renderScope,
   step: (sec, fdt = 1 / 30) => { DBG.fdt = fdt; for (let k = 0; k < sec / fdt; k++) loop(0, null); DBG.fdt = 0; } };
 
 // ═══════════════════════════ BOOT ═══════════════════════════
@@ -1023,7 +1078,7 @@ window.__T = { TEASE, TZ, tzSight, S, LAMP, SHIPS, SWIM, CREW, ROCKS, TENT, EYE,
   try { renderer.compile(scene, camera); } catch (e) { }
   renderer.setAnimationLoop(loop);
   const ok = SIM || (navigator.xr && await navigator.xr.isSessionSupported('immersive-vr').catch(() => false));
-  $('go').disabled = false; $('go').textContent = 'Climb the Tower'; if (!ok) $('msg').textContent = 'Virtual reality needs a Meta Quest browser';
+  $('go').disabled = false; $('go').textContent = 'Climb the Tower'; contLabel(); seatChair(); if (!ok) $('msg').textContent = 'Virtual reality needs a Meta Quest browser';
   if (SIM) $('msg').textContent = 'Desktop preview · mouse = hand · hold = pinch · right-drag = look · T = tip';
 })();
 </script>
